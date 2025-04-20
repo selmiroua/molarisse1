@@ -1,0 +1,25 @@
+<div class="activation-container">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Activate Your Account</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="activationForm" (ngSubmit)="onSubmit()">
+        <mat-form-field appearance="outline">
+          <mat-label>Activation Code</mat-label>
+          <input matInput formControlName="code" placeholder="Enter your activation code">
+          <mat-error *ngIf="activationForm.get('code')?.hasError('required')">
+            Activation code is required
+          </mat-error>
+        </mat-form-field>
+
+        <div class="button-container">
+          <button mat-raised-button color="primary" type="submit" [disabled]="!activationForm.valid || loading">
+            <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
+            <span *ngIf="!loading">Activate Account</span>
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -1,0 +1,108 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <h2>S'inscrire</h2>
+
+    <form [formGroup]="signInForm" (ngSubmit)="onSubmit()" class="auth-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Role</mat-label>
+        <mat-select formControlName="role">
+          <mat-option *ngFor="let role of roles" [value]="role">
+            {{ role }}
+          </mat-option>
+        </mat-select>
+        <mat-error *ngIf="signInForm.get('role')?.hasError('required')">
+          Role est requis
+        </mat-error>
+      </mat-form-field>
+
+      <div class="name-fields">
+        <mat-form-field appearance="outline">
+          <mat-label>Nom</mat-label>
+          <input matInput formControlName="prenom" placeholder="Entrez votre nom">
+          <mat-icon matPrefix>person</mat-icon>
+          <mat-error *ngIf="signInForm.get('prenom')?.hasError('required')">
+            Nom est requis
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Prénom</mat-label>
+          <input matInput formControlName="nom" placeholder="Entrez votre prénom">
+          <mat-icon matPrefix>person</mat-icon>
+          <mat-error *ngIf="signInForm.get('nom')?.hasError('required')">
+            Prénom est requis
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput formControlName="email" placeholder="Entrez votre email" type="email">
+        <mat-icon matPrefix>email</mat-icon>
+        <mat-error *ngIf="signInForm.get('email')?.hasError('required')">
+          Email est requis
+        </mat-error>
+        <mat-error *ngIf="signInForm.get('email')?.hasError('email')">
+          Email invalide
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Mot de passe</mat-label>
+        <input matInput [type]="hidePassword ? 'password' : 'text'" 
+               formControlName="password" 
+               placeholder="Entrez votre mot de passe">
+        <mat-icon matPrefix>lock</mat-icon>
+        <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button">
+          <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+        </button>
+        <mat-error *ngIf="signInForm.get('password')?.hasError('required')">
+          Mot de passe est requis
+        </mat-error>
+        <mat-error *ngIf="signInForm.get('password')?.hasError('minlength')">
+          Le mot de passe doit contenir au moins 6 caractères
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Confirmer le Mot de passe</mat-label>
+        <input matInput [type]="hideConfirmPassword ? 'password' : 'text'" 
+               formControlName="confirmPassword" 
+               placeholder="Confirmez votre mot de passe">
+        <mat-icon matPrefix>lock_clock</mat-icon>
+        <button mat-icon-button matSuffix (click)="hideConfirmPassword = !hideConfirmPassword" type="button">
+          <mat-icon>{{hideConfirmPassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+        </button>
+        <mat-error *ngIf="signInForm.get('confirmPassword')?.hasError('required')">
+          Confirmation du mot de passe est requise
+        </mat-error>
+        <mat-error *ngIf="signInForm.hasError('mismatch')">
+          Les mots de passe ne correspondent pas
+        </mat-error>
+      </mat-form-field>
+
+      <button mat-raised-button type="submit" [disabled]="!signInForm.valid">
+        S'inscrire
+      </button>
+    </form>
+
+    <div class="social-login">
+      <p>Ou inscrivez-vous avec</p>
+      <div class="social-buttons">
+        <button mat-mini-fab (click)="signInWithGoogle()" aria-label="S'inscrire avec Google" class="google-btn">
+          <i class="fab fa-google"></i>
+        </button>
+        <button mat-mini-fab (click)="signInWithApple()" aria-label="S'inscrire avec Apple" class="apple-btn">
+          <i class="fab fa-apple"></i>
+        </button>
+        <button mat-mini-fab (click)="signInWithFacebook()" aria-label="S'inscrire avec Facebook" class="facebook-btn">
+          <i class="fab fa-facebook-f"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="auth-footer">
+      <p>Vous avez déjà un compte? <a routerLink="/login">Se connecter</a></p>
+    </div>
+  </div>
+</div>

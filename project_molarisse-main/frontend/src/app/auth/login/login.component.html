@@ -1,0 +1,68 @@
+<div class="auth-container">
+  <div class="auth-card">
+    
+    
+    <h2>Se Connecter</h2>
+    
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput formControlName="email" placeholder="Entrez votre email" type="email">
+        <mat-icon matPrefix>email</mat-icon>
+        <mat-error *ngIf="loginForm.get('email')?.hasError('required')">
+          Email est requis
+        </mat-error>
+        <mat-error *ngIf="loginForm.get('email')?.hasError('email')">
+          Email invalide
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Mot de passe</mat-label>
+        <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" placeholder="Entrez votre mot de passe">
+        <mat-icon matPrefix>lock</mat-icon>
+        <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button">
+          <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+        </button>
+        <mat-error *ngIf="loginForm.get('password')?.hasError('required')">
+          Mot de passe est requis
+        </mat-error>
+      </mat-form-field>
+
+      <div class="form-options">
+        <mat-checkbox [(ngModel)]="rememberMe" [ngModelOptions]="{standalone: true}" color="primary">
+          Souviens de moi
+        </mat-checkbox>
+        <a href="#" class="forgot-password">Mot de passe oublié?</a>
+      </div>
+
+      <button mat-raised-button type="submit" [disabled]="!loginForm.valid">
+        Se Connecter
+      </button>
+    </form>
+
+    <div class="unconfirmed-account-message">
+      <p>Vous avez un compte non confirmé ?</p>
+      <button mat-button (click)="router.navigate(['/activate-account'])">Activer votre compte</button>
+    </div>
+
+    <div class="social-login">
+      <p>Ou connectez-vous avec</p>
+      <div class="social-buttons">
+        <button mat-mini-fab (click)="loginWithGoogle()" aria-label="Se connecter avec Google" class="google-btn">
+          <i class="fab fa-google"></i>
+        </button>
+        <button mat-mini-fab (click)="loginWithApple()" aria-label="Se connecter avec Apple" class="apple-btn">
+          <i class="fab fa-apple"></i>
+        </button>
+        <button mat-mini-fab (click)="loginWithFacebook()" aria-label="Se connecter avec Facebook" class="facebook-btn">
+          <i class="fab fa-facebook-f"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="auth-footer">
+      <p>Vous n'avez pas de compte? <a routerLink="/sign-in">S'inscrire</a></p>
+    </div>
+  </div>
+</div>

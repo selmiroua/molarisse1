@@ -1,0 +1,216 @@
+<div class="fiche-patient-container">
+  <h2 mat-dialog-title class="dialog-title">
+    <span>FICHE PATIENT</span>
+    <span class="patient-id">ID: {{ data?.patientId ?? 'N/A' }}</span>
+    <button mat-icon-button class="close-button" [mat-dialog-close]="false">
+      <mat-icon>close</mat-icon>
+    </button>
+  </h2>
+
+  <mat-dialog-content class="dialog-content">
+    <div *ngIf="loading" class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Chargement des données...</p>
+    </div>
+
+    <form [formGroup]="fichePatientForm" (ngSubmit)="onSubmit()" *ngIf="!loading">
+      <!-- Doctor Info (read-only) -->
+      <div class="doctor-info" *ngIf="doctorInfo">
+        <h3>Docteur: Dr. {{ doctorInfo.nom }} {{ doctorInfo.prenom }}</h3>
+        <p *ngIf="doctorInfo.speciality">Spécialité: {{ doctorInfo.speciality }}</p>
+      </div>
+      <div class="doctor-info" *ngIf="!doctorInfo && !loading">
+        <h3>Docteur: Information non disponible</h3>
+      </div>
+
+      <!-- Dental Chart Placeholder -->
+      <div class="form-section">
+        <h3>Schéma Dentaire</h3>
+        <div class="dental-chart-container">
+          <div class="dental-chart-image">
+            <img [src]="dentalChartImageUrl" 
+                 alt="Schéma dentaire" 
+                 (error)="handleImageError($event)">
+          </div>
+        </div>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Observations dentaires générales</mat-label>
+          <textarea matInput rows="3" formControlName="observationsDentaires"></textarea>
+        </mat-form-field>
+      </div>
+
+      <!-- Patient Information -->
+      <div class="form-section">
+        <h3>Informations Personnelles</h3>
+        <div class="form-grid two-columns">
+          <mat-form-field appearance="outline">
+            <mat-label>Nom</mat-label>
+            <input matInput formControlName="nom">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Prénom</mat-label>
+            <input matInput formControlName="prenom">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Date de Naissance</mat-label>
+            <input matInput [matDatepicker]="dobPicker" formControlName="dateNaissance">
+            <mat-datepicker-toggle matSuffix [for]="dobPicker"></mat-datepicker-toggle>
+            <mat-datepicker #dobPicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Profession</mat-label>
+            <input matInput formControlName="profession">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Téléphone</mat-label>
+            <input matInput formControlName="telephone">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Adresse</mat-label>
+            <textarea matInput formControlName="adresse"></textarea>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Adressé par</mat-label>
+            <input matInput formControlName="adressePar">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Sexe</mat-label>
+            <mat-select formControlName="sexe">
+              <mat-option value="HOMME">Homme</mat-option>
+              <mat-option value="FEMME">Femme</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Medical History -->
+      <div class="form-section">
+        <h3>Antécédents et Conditions</h3>
+        <div class="form-grid two-columns">
+           <mat-form-field appearance="outline">
+            <mat-label>Etat Général</mat-label>
+            <textarea matInput rows="2" formControlName="etatGeneral"></textarea>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Antécédents chirurgicaux</mat-label>
+            <textarea matInput rows="2" formControlName="antecedentsChirurgicaux"></textarea>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Prise médicamenteuse</mat-label>
+            <textarea matInput rows="2" formControlName="priseMedicaments"></textarea>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Allergies</mat-label>
+            <textarea matInput rows="2" formControlName="allergies"></textarea>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Interventions -->
+      <div class="form-section">
+        <h3>Interventions</h3>
+        <div formArrayName="interventions" class="interventions-list">
+          <div *ngFor="let intervention of interventions.controls; let i = index" 
+               [formGroupName]="i" 
+               class="intervention-item">
+            <mat-form-field appearance="outline">
+              <mat-label>Date</mat-label>
+              <input matInput [matDatepicker]="picker" formControlName="date">
+              <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Nature de l'intervention</mat-label>
+              <input matInput formControlName="nature">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Doit</mat-label>
+              <input matInput type="number" formControlName="doit">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Reçu</mat-label>
+              <input matInput type="number" formControlName="recu">
+            </mat-form-field>
+
+            <button *ngIf="!isViewOnly" mat-icon-button color="warn" type="button" (click)="removeIntervention(i)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <button *ngIf="!isViewOnly" mat-stroked-button color="primary" (click)="addIntervention()" type="button" class="add-intervention-button">
+          <mat-icon>add</mat-icon> Ajouter une intervention
+        </button>
+      </div>
+
+      <!-- File Upload -->
+      <div class="form-section file-upload-section" *ngIf="!isViewOnly">
+        <h3>Documents (Radios, etc.)</h3>
+        <input 
+          type="file" 
+          multiple 
+          #fileInput 
+          (change)="onFileSelected($event)" 
+          style="display: none;"
+          accept=".pdf,.png,.jpg,.jpeg,.dicom" 
+        />
+        <button mat-stroked-button color="primary" (click)="fileInput.click()" type="button">
+          <mat-icon>attach_file</mat-icon>
+          Choisir des fichiers
+        </button>
+        
+        <div class="selected-files-list" *ngIf="selectedFiles.length > 0">
+          <h4>Fichiers sélectionnés :</h4>
+          <ul>
+            <li *ngFor="let file of selectedFiles; let i = index">
+              <span>{{ file.name }} ({{ formatBytes(file.size) }})</span>
+              <button mat-icon-button color="warn" (click)="removeSelectedFile(i)" type="button" class="remove-file-button">
+                <mat-icon>close</mat-icon>
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Attached Documents (View Mode) -->
+      <div class="form-section" *ngIf="isViewOnly && attachedDocuments?.length">
+        <h3>Documents Attachés</h3>
+        <div class="attached-documents-list">
+          <div *ngFor="let doc of attachedDocuments" class="document-item">
+            <mat-icon>description</mat-icon>
+            <span>{{ doc.name }}</span>
+            <button mat-icon-button color="primary" (click)="viewDocument(doc)">
+              <mat-icon>visibility</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button [mat-dialog-close]="false">
+      {{ isViewOnly ? 'Fermer' : 'Annuler' }}
+    </button>
+    <button *ngIf="!isViewOnly" 
+            mat-raised-button 
+            color="primary" 
+            (click)="onSubmit()" 
+            [disabled]="!fichePatientForm.valid || saving">
+      {{ saving ? 'Enregistrement...' : 'Enregistrer la fiche' }}
+    </button>
+  </mat-dialog-actions>
+</div> 

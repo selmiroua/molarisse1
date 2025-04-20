@@ -1,0 +1,182 @@
+<div class="profile-container">
+  <mat-card class="profile-card">
+    <mat-card-header>
+      <mat-card-title>Votre Profil</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <!-- Profile Display -->
+      <div *ngIf="!showEditForm && userProfile" class="profile-info">
+        <div class="profile-picture-container">
+          <img [src]="getProfileImageUrl(userProfile.profilePicturePath)" 
+               alt="Photo de profil" 
+               class="profile-picture">
+        </div>
+        
+        <div class="profile-details">
+          <p><strong>Nom:</strong> {{userProfile.prenom}} {{userProfile.nom}}</p>
+          <p><strong>Email:</strong> {{userProfile.email}}</p>
+          <p><strong>Adresse:</strong> {{userProfile.address || 'Non spécifié'}}</p>
+          <p><strong>Téléphone:</strong> {{userProfile.phoneNumber || 'Non spécifié'}}</p>
+        </div>
+
+        <button mat-raised-button color="primary" (click)="toggleEditForm()">
+          Modifier le Profil
+        </button>
+      </div>
+
+      <!-- Edit Form -->
+      <div *ngIf="showEditForm" class="edit-form-container">
+        <div class="welcome-message">
+          <h3>Modifier vos informations personnelles</h3>
+          <p>Vous pouvez mettre à jour vos informations ci-dessous. Tous les champs sont optionnels.</p>
+        </div>
+
+        <div class="profile-picture-edit">
+          <img [src]="previewUrl || getProfileImageUrl(userProfile?.profilePicturePath)" 
+               alt="Aperçu de la photo de profil" 
+               class="profile-picture">
+          
+          <div class="upload-controls">
+            <input type="file" 
+                   #fileInput 
+                   accept="image/*" 
+                   (change)="onFileSelected($event)" 
+                   style="display: none">
+            
+            <button type="button" 
+                    mat-stroked-button 
+                    (click)="fileInput.click()">
+              Choisir une Photo
+            </button>
+          </div>
+
+          <mat-progress-bar *ngIf="uploadProgress > 0" mode="determinate" [value]="uploadProgress"></mat-progress-bar>
+        </div>
+
+        <mat-divider class="section-divider"></mat-divider>
+
+        <!-- Personal Information Form -->
+        <form [formGroup]="profileForm" (ngSubmit)="onSubmitProfile()" class="edit-form">
+          <h3>Informations Personnelles</h3>
+          
+          <mat-form-field appearance="outline">
+            <mat-label>Prénom</mat-label>
+            <input matInput formControlName="prenom">
+            <mat-error *ngIf="profileForm.get('prenom')?.invalid && (profileForm.get('prenom')?.dirty || profileForm.get('prenom')?.touched || profileUpdateSubmitted)">
+              Veuillez entrer un prénom valide
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Nom</mat-label>
+            <input matInput formControlName="nom">
+            <mat-error *ngIf="profileForm.get('nom')?.invalid && (profileForm.get('nom')?.dirty || profileForm.get('nom')?.touched || profileUpdateSubmitted)">
+              Veuillez entrer un nom valide
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Email</mat-label>
+            <input matInput formControlName="email" type="email">
+            <mat-error *ngIf="profileForm.get('email')?.hasError('email') && (profileForm.get('email')?.dirty || profileForm.get('email')?.touched || profileUpdateSubmitted)">
+              Veuillez entrer une adresse email valide
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Adresse</mat-label>
+            <input matInput formControlName="address">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Numéro de Téléphone</mat-label>
+            <input matInput formControlName="phoneNumber">
+            <mat-error *ngIf="profileForm.get('phoneNumber')?.hasError('pattern') && (profileForm.get('phoneNumber')?.dirty || profileForm.get('phoneNumber')?.touched || profileUpdateSubmitted)">
+              Veuillez entrer un numéro de téléphone valide à 8 chiffres
+            </mat-error>
+          </mat-form-field>
+
+          <div class="form-actions">
+            <button type="submit" 
+                    mat-raised-button 
+                    color="primary" 
+                    [disabled]="loading || profileForm.invalid">
+              <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
+              <span *ngIf="!loading">Enregistrer les Modifications</span>
+            </button>
+          </div>
+        </form>
+
+        <mat-divider class="section-divider"></mat-divider>
+
+        <!-- Password Change Form -->
+        <div class="edit-form password-form">
+          <h3>Changer le Mot de Passe</h3>
+          
+          <!-- Success message -->
+          <div *ngIf="passwordChangeSuccess" class="password-success-message">
+            <div class="success-icon">✓</div>
+            <p>Mot de passe changé avec succès!</p>
+          </div>
+          
+          <!-- Actual form -->
+          <form *ngIf="!passwordChangeSuccess" [formGroup]="passwordForm" (ngSubmit)="onSubmitPassword()">
+            <mat-form-field appearance="outline">
+              <mat-label>Mot de Passe Actuel</mat-label>
+              <input matInput formControlName="currentPassword" type="password">
+              <mat-error *ngIf="passwordForm.get('currentPassword')?.hasError('required') && (passwordForm.get('currentPassword')?.dirty || passwordForm.get('currentPassword')?.touched || passwordChangeSubmitted)">
+                Le mot de passe actuel est requis
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Nouveau Mot de Passe</mat-label>
+              <input matInput formControlName="newPassword" type="password">
+              <mat-error *ngIf="passwordForm.get('newPassword')?.hasError('required') && (passwordForm.get('newPassword')?.dirty || passwordForm.get('newPassword')?.touched || passwordChangeSubmitted)">
+                Le nouveau mot de passe est requis
+              </mat-error>
+              <mat-error *ngIf="passwordForm.get('newPassword')?.hasError('minlength') && (passwordForm.get('newPassword')?.dirty || passwordForm.get('newPassword')?.touched || passwordChangeSubmitted)">
+                Le mot de passe doit contenir au moins 8 caractères
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Confirmer le Nouveau Mot de Passe</mat-label>
+              <input matInput formControlName="confirmPassword" type="password">
+              <mat-error *ngIf="passwordForm.get('confirmPassword')?.hasError('required') && (passwordForm.get('confirmPassword')?.dirty || passwordForm.get('confirmPassword')?.touched || passwordChangeSubmitted)">
+                La confirmation du mot de passe est requise
+              </mat-error>
+              <mat-error *ngIf="passwordForm.get('confirmPassword')?.hasError('passwordMismatch') && (passwordForm.get('confirmPassword')?.dirty || passwordForm.get('confirmPassword')?.touched || passwordChangeSubmitted)">
+                Les mots de passe ne correspondent pas
+              </mat-error>
+            </mat-form-field>
+
+            <div class="form-actions">
+              <button type="submit" 
+                      mat-raised-button 
+                      color="primary" 
+                      [disabled]="loading || passwordForm.invalid">
+                <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
+                <span *ngIf="!loading">Changer le Mot de Passe</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="form-actions main-actions">
+          <button type="button" 
+                  mat-stroked-button 
+                  (click)="cancelEdit()" 
+                  [disabled]="loading">
+            Annuler
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="loading && !showEditForm" class="loading-spinner">
+        <mat-spinner></mat-spinner>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
