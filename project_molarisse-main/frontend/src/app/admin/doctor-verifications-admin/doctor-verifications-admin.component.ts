@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DoctorVerificationService } from '../../core/services/doctor-verification.service';
 import { DoctorVerification } from '../../core/models/doctor-verification.model';
@@ -320,6 +320,7 @@ import { catchError, of, tap } from 'rxjs';
   ]
 })
 export class DoctorVerificationsAdminComponent implements OnInit {
+  @Input() limit?: number;
   pendingVerifications: DoctorVerification[] = [];
   loading = true;
 
@@ -336,20 +337,24 @@ export class DoctorVerificationsAdminComponent implements OnInit {
 
   loadPendingVerifications(): void {
     this.loading = true;
-    this.verificationService.getPendingVerifications()
-      .subscribe({
-        next: (verifications) => {
-          this.pendingVerifications = verifications;
-          this.loading = false;
-        },
-        error: (error) => {
-          console.error('Error loading pending verifications:', error);
-          this.snackBar.open('Erreur lors du chargement des vérifications en attente', 'Fermer', {
-            duration: 5000
-          });
-          this.loading = false;
-        }
-      });
+    let url = `${environment.apiUrl}/admin/verifications`;
+    if (this.limit) {
+      url += `?limit=${this.limit}`;
+    }
+    
+    this.http.get<DoctorVerification[]>(url).subscribe({
+      next: (verifications) => {
+        this.pendingVerifications = verifications;
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading pending verifications:', error);
+        this.snackBar.open('Erreur lors du chargement des vérifications en attente', 'Fermer', {
+          duration: 5000
+        });
+        this.loading = false;
+      }
+    });
   }
 
   viewDocument(filePath: string): void {

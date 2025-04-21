@@ -720,11 +720,11 @@ export class AppointmentFormDialogComponent implements OnInit {
     console.log('Loading appointments for doctor:', this.doctor.id);
     
     this.appointmentService.getDoctorAppointments(this.doctor.id).subscribe({
-        next: (appointments) => {
+      next: (appointments) => {
             console.log('DEBUG - All appointments received:', appointments);
             
             // Store all appointments
-            this.doctorAppointments = appointments;
+        this.doctorAppointments = appointments;
             
             // Log each appointment's details
             appointments.forEach(apt => {
@@ -750,19 +750,19 @@ export class AppointmentFormDialogComponent implements OnInit {
             console.log('DEBUG - Accepted appointments:', acceptedAppointments);
 
             // Update time slots if we have a selected date and type
-            const selectedDate = this.form.get('appointmentDate')?.value;
-            const selectedType = this.form.get('appointmentType')?.value;
-            if (selectedDate && selectedType) {
-                this.generateAvailableTimeSlots(selectedDate, selectedType);
-            }
-        },
-        error: (error) => {
-            console.error('Error loading doctor appointments:', error);
-            this.snackBar.open('Erreur lors du chargement des rendez-vous', 'Fermer', { duration: 3000 });
-            this.doctorAppointments = [];
-            this.allTimeSlots = [];
-            this.availableTimeSlots = [];
+        const selectedDate = this.form.get('appointmentDate')?.value;
+        const selectedType = this.form.get('appointmentType')?.value;
+        if (selectedDate && selectedType) {
+          this.generateAvailableTimeSlots(selectedDate, selectedType);
         }
+      },
+      error: (error) => {
+        console.error('Error loading doctor appointments:', error);
+        this.snackBar.open('Erreur lors du chargement des rendez-vous', 'Fermer', { duration: 3000 });
+        this.doctorAppointments = [];
+        this.allTimeSlots = [];
+        this.availableTimeSlots = [];
+      }
     });
   }
 
@@ -930,8 +930,8 @@ export class AppointmentFormDialogComponent implements OnInit {
     );
     
     if (!isTimeSlotAvailable) {
-        this.snackBar.open('Cette plage horaire n\'est plus disponible. Veuillez en choisir une autre.', 'Fermer', { duration: 3000 });
-        return;
+      this.snackBar.open('Cette plage horaire n\'est plus disponible. Veuillez en choisir une autre.', 'Fermer', { duration: 3000 });
+      return;
     }
 
     this.submitting = true;
@@ -940,12 +940,12 @@ export class AppointmentFormDialogComponent implements OnInit {
     const token = localStorage.getItem('access_token');
     if (!token) {
         this.snackBar.open('Erreur: Token d\'authentification manquant', 'Fermer', { duration: 3000 });
-        this.submitting = false;
-        return;
+      this.submitting = false;
+      return;
     }
 
     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-    
+
     // First check for existing appointments
     this.http.get<any[]>(`${environment.apiUrl}/api/v1/api/appointments/my-appointments`, { headers }).subscribe({
         next: (appointments) => {
@@ -959,10 +959,10 @@ export class AppointmentFormDialogComponent implements OnInit {
                     'Fermer',
                     { duration: 5000 }
                 );
-                this.submitting = false;
+      this.submitting = false;
                 this.dialogRef.close();
-                return;
-            }
+      return;
+    }
 
             this.currentStep = 2;
             
@@ -980,24 +980,24 @@ export class AppointmentFormDialogComponent implements OnInit {
             const localISOString = `${year}-${month}-${day}T${hoursStr}:${minutesStr}:00.000Z`;
 
             // Get the patient ID and proceed with appointment creation
-            this.http.get<any>(`${environment.apiUrl}/api/v1/api/patients/me`, { headers }).subscribe({
-                next: (response) => {
-                    this.temporaryAppointmentData = {
+    this.http.get<any>(`${environment.apiUrl}/api/v1/api/patients/me`, { headers }).subscribe({
+      next: (response) => {
+        this.temporaryAppointmentData = {
                         patientId: response.id,
-                        doctorId: this.doctor.id,
+          doctorId: this.doctor.id,
                         appointmentDateTime: localISOString,
-                        caseType: formValues.caseType,
-                        appointmentType: formValues.appointmentType,
-                        notes: formValues.notes
-                    };
+          caseType: formValues.caseType,
+          appointmentType: formValues.appointmentType,
+          notes: formValues.notes
+        };
 
-                    this.submitting = false;
-                    this.showSuccessPrompt = true;
-                    this.currentStep = 3;
-                },
-                error: (error) => {
-                    console.error('Error getting patient ID:', error);
-                    this.snackBar.open('Erreur lors de la récupération des informations du patient', 'Fermer', { duration: 3000 });
+        this.submitting = false;
+        this.showSuccessPrompt = true;
+        this.currentStep = 3;
+      },
+      error: (error) => {
+        console.error('Error getting patient ID:', error);
+        this.snackBar.open('Erreur lors de la récupération des informations du patient', 'Fermer', { duration: 3000 });
                     this.submitting = false;
                 }
             });
@@ -1005,8 +1005,8 @@ export class AppointmentFormDialogComponent implements OnInit {
         error: (error) => {
             console.error('Error checking existing appointments:', error);
             this.snackBar.open('Erreur lors de la vérification des rendez-vous existants.', 'Fermer', { duration: 5000 });
-            this.submitting = false;
-        }
+        this.submitting = false;
+      }
     });
   }
 
@@ -1085,7 +1085,7 @@ export class AppointmentFormDialogComponent implements OnInit {
   selectTimeSlot(slot: string) {
     const timeSlot = this.allTimeSlots.find(s => s.time === slot);
     if (timeSlot && timeSlot.available) {
-        this.form.patchValue({ appointmentTime: slot });
+      this.form.patchValue({ appointmentTime: slot });
     }
   }
 

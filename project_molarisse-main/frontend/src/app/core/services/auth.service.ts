@@ -3,6 +3,9 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, timer } from 'rxjs';
 import { tap, switchMap } from 'rxjs/operators';
 import { jwtDecode } from 'jwt-decode';
+import { map } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
+import { JwtHelperService } from '@auth0/angular-jwt';
 
 @Injectable({
   providedIn: 'root'
@@ -13,15 +16,32 @@ export class AuthService {
   private tokenRefreshTimer: any;
   private isRefreshing = false;
   private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
+  private currentUserSubject: BehaviorSubject<any>;
+  public currentUser: Observable<any>;
+  private jwtHelper = new JwtHelperService();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    this.currentUserSubject = new BehaviorSubject<any>(null);
+    this.currentUser = this.currentUserSubject.asObservable();
+    this.loadCurrentUser();
+  }
+
+  private loadCurrentUser() {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      const decodedToken = this.jwtHelper.decodeToken(token);
+      this.currentUserSubject.next(decodedToken);
+    }
+  }
 
   login(email: string, password: string): Observable<any> {
-    return this.http.post(`${this.API_URL}/authenticate`, { email, password })
+    return this.http.post<any>(`${environment.apiUrl}/api/v1/auth/authenticate`, { email, password })
       .pipe(
-        tap((response: any) => {
-          if (response.token) {
-            this.setToken(response.token);
+        tap(response => {
+          if (response.access_token) {
+            localStorage.setItem('access_token', response.access_token);
+            const decodedToken = this.jwtHelper.decodeToken(response.access_token);
+            this.currentUserSubject.next(decodedToken);
           }
         })
       );
@@ -77,7 +97,7 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
+    return localStorage.getItem('access_token');
   }
 
   setToken(token: string): void {
@@ -143,14 +163,23 @@ export class AuthService {
   }
 
   getCurrentUserId(): string | null {
-    const token = this.getToken();
-    if (!token) return null;
-    try {
-      const decodedToken = jwtDecode(token) as any;
-      return decodedToken.id || null;
-    } catch (error) {
-      console.error('Error decoding token:', error);
-      return null;
-    }
+    const currentUser = this.currentUserSubject.value;
+    return currentUser ? currentUser.id : null;
+  }
+
+  getCurrentUserName(): Observable<string> {
+    return this.currentUser.pipe(
+      map(user => user ? `${user.prenom} ${user.nom}` : '')
+    );
+  }
+
+  isLoggedIn(): boolean {
+    const token = localStorage.getItem('access_token');
+    return token !== null && !this.jwtHelper.isTokenExpired(token);
+  }
+
+  hasRole(role: string): boolean {
+    const currentUser = this.currentUserSubject.value;
+    return currentUser && currentUser.role === role;
   }
 } 

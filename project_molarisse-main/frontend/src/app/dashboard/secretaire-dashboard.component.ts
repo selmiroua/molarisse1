@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { NotificationService } from '../core/services/notification.service';
@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDividerModule } from '@angular/material/divider';
 import { AppointmentListComponent } from './appointment/appointment-list.component';
 import { AppointmentCalendarComponent } from './appointment/appointment-calendar.component';
 import { ProfileComponent } from '../profile/profile.component';
@@ -20,6 +21,8 @@ import { SecretaryService } from '../core/services/secretary.service';
 import { RouterModule } from '@angular/router';
 import { SecretaryAppointmentListComponent } from './appointment/secretary-appointment-list.component';
 import { VerifiedDoctorsComponent } from '../secretary/verified-doctors/verified-doctors.component';
+import { ProfileService } from '../profile/profile.service';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-secretaire-dashboard',
@@ -32,6 +35,7 @@ import { VerifiedDoctorsComponent } from '../secretary/verified-doctors/verified
     MatButtonModule,
     MatSnackBarModule,
     MatTooltipModule,
+    MatDividerModule,
     AppointmentListComponent,
     AppointmentCalendarComponent,
     SecretaryAppointmentListComponent,
@@ -45,10 +49,13 @@ import { VerifiedDoctorsComponent } from '../secretary/verified-doctors/verified
   styleUrls: ['./secretaire-dashboard.component.scss']
 })
 export class SecretaireDashboardComponent implements OnInit {
-  isMenuOpen = false;
+  isMenuOpen = true;
   activeSection = 'dashboard';
   unreadNotifications = 0;
   isAssignedToDoctor = true;
+  profileImageUrl: string | null = null;
+  secretaryName = '';
+  isProfileDropdownOpen = false;
 
   constructor(
     private router: Router,
@@ -56,7 +63,8 @@ export class SecretaireDashboardComponent implements OnInit {
     private notificationService: NotificationService,
     private userService: UserService,
     private secretaryService: SecretaryService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private profileService: ProfileService
   ) {
     // No need to check assignment status since we're showing all items
   }
@@ -88,6 +96,7 @@ export class SecretaireDashboardComponent implements OnInit {
 
     // Charger les notifications
     this.loadNotifications();
+    this.loadSecretaryProfile();
   }
 
   // Simplified method - we still call the API for data but don't restrict UI
@@ -116,6 +125,45 @@ export class SecretaireDashboardComponent implements OnInit {
     });
   }
 
+  loadSecretaryProfile() {
+    this.profileService.getCurrentProfile().subscribe({
+      next: (profile) => {
+        console.log('Profile loaded:', profile);
+        const capitalizedNom = profile.nom.charAt(0).toUpperCase() + profile.nom.slice(1);
+        const capitalizedPrenom = profile.prenom.charAt(0).toUpperCase() + profile.prenom.slice(1);
+        this.secretaryName = `${capitalizedNom} ${capitalizedPrenom}`;
+        this.profileImageUrl = this.getProfileImageUrl(profile.profilePicturePath);
+      },
+      error: (error) => {
+        console.error('Error loading profile:', error);
+        this.setDefaultValues();
+      }
+    });
+  }
+
+  private setDefaultValues(): void {
+    this.secretaryName = '';
+    this.profileImageUrl = null;
+  }
+
+  getProfileImageUrl(profilePicturePath?: string): string {
+    if (profilePicturePath) {
+      try {
+        const timestamp = new Date().getTime();
+        return `${environment.apiUrl}/api/v1/api/users/profile/picture/${profilePicturePath}?t=${timestamp}`;
+      } catch (error) {
+        console.error('Error generating profile picture URL:', error);
+        return 'assets/images/default-avatar.png';
+      }
+    }
+    return 'assets/images/default-avatar.png';
+  }
+
+  handleImageError(event: any): void {
+    const imgElement = event.target as HTMLImageElement;
+    imgElement.src = 'assets/images/default-avatar.png';
+  }
+
   toggleMenu(): void {
     this.isMenuOpen = !this.isMenuOpen;
   }
@@ -126,6 +174,7 @@ export class SecretaireDashboardComponent implements OnInit {
 
   showProfile(): void {
     this.activeSection = 'profile';
+    this.isProfileDropdownOpen = false;
   }
 
   showValidateAccount(): void {
@@ -144,8 +193,36 @@ export class SecretaireDashboardComponent implements OnInit {
     this.activeSection = 'doctor-application';
   }
 
+  showSettings(): void {
+    this.activeSection = 'settings';
+    this.isProfileDropdownOpen = false;
+  }
+
+  showNotifications() {
+    this.activeSection = 'notifications';
+    this.isProfileDropdownOpen = false;
+  }
+
   logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
+    this.authService.logout().subscribe({
+      next: () => {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('userRole');
+        this.router.navigate(['/login']);
+      },
+      error: (error: unknown) => {
+        console.error('Error during logout:', error);
+        // Still navigate to login even if the server request fails
+        this.router.navigate(['/login']);
+      }
+    });
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const profileElement = (event.target as HTMLElement).closest('.user-profile');
+    if (!profileElement) {
+      this.isProfileDropdownOpen = false;
+    }
   }
 }

@@ -4,6 +4,7 @@ import { Observable, of } from 'rxjs';
 import { User } from '../models/user.model';
 import { environment } from '../../../environments/environment';
 import { catchError, tap, map } from 'rxjs/operators';
+import { Statistics } from '../models/statistics.model';
 
 // Define the type for secretary status
 type SecretaryStatusResponse = { 
@@ -114,6 +115,19 @@ export class SecretaryService {
       catchError(error => {
         console.error('Error rejecting secretary request:', error);
         throw error;
+      })
+    );
+  }
+
+  getAppointmentStatistics(): Observable<Statistics> {
+    return this.http.get<Statistics>(`${environment.apiUrl}/api/v1/appointments/secretary/statistics`).pipe(
+      catchError(error => {
+        console.error('Error fetching statistics:', error);
+        return of({
+          appointmentsToday: 0,
+          pendingAppointments: 0,
+          totalAppointments: 0
+        });
       })
     );
   }

@@ -5,6 +5,14 @@ import { tap, catchError } from 'rxjs/operators';
 import { isPlatformBrowser } from '@angular/common';
 import { environment } from '../../environments/environment';
 
+export interface User {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -65,12 +73,13 @@ export class AuthService {
     );
   }
 
-  logout(): void {
+  logout(): Observable<void> {
     this.userRole = null;
     if (isPlatformBrowser(this.platformId)) {
       localStorage.removeItem('userRole');
       localStorage.removeItem('access_token');
     }
+    return this.http.post<void>(`${this.apiUrl}/logout`, {});
   }
 
   getUserRole(): string | null {
@@ -175,5 +184,9 @@ export class AuthService {
       }
     }
     return null;
+  }
+
+  getCurrentUser(): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/current-user`);
   }
 }

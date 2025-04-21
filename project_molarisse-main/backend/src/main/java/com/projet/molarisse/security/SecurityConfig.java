@@ -87,6 +87,17 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                     .requestMatchers(HttpMethod.POST, "/api/users/profile/picture").authenticated()
                     .requestMatchers(HttpMethod.PUT, "/api/users/password").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/users/test").permitAll()
+                     // Allow demande pictures viewing
+                                .requestMatchers(HttpMethod.GET, "/api/v1/demandes/pictures/**").permitAll()
+                                // Allow doctors endpoints
+                                .requestMatchers(HttpMethod.GET, "/api/users/doctors/accepted").permitAll()
+                                // Demande endpoints (authenticated but no specific role required)
+                                .requestMatchers(HttpMethod.POST, "/api/v1/demandes").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/v1/demandes/secretary").permitAll() // Allow secretary requests
+                                .requestMatchers(HttpMethod.GET, "/api/v1/demandes/check").authenticated()
+                                // Demande management endpoints (admin only)
+                                .requestMatchers(HttpMethod.GET, "/api/v1/demandes/all").hasRole("ADMIN")
+                                .requestMatchers(HttpMethod.PUT, "/api/v1/demandes/{id}/status").hasRole("ADMIN")
                     .requestMatchers("/auth/**").permitAll()
                     .requestMatchers("/api/v1/auth/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/notifications/**").authenticated()
