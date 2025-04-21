@@ -132,22 +132,24 @@ export class AppointmentService {
   // Get appointments for the current doctor
   getMyDoctorAppointments(): Observable<Appointment[]> {
     console.log('Calling getMyDoctorAppointments API');
-    return this.profileService.getCurrentProfile().pipe(
-      switchMap(profile => {
-        if (!profile || !profile.id) {
-          console.error('No profile or profile ID found');
-          return throwError(() => new Error('Doctor ID not found'));
-        }
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      console.error('No authentication token found');
+      return throwError(() => new Error('Authentication token not found'));
+    }
 
-        console.log('Using doctor ID from profile:', profile.id);
-        return this.http.get<Appointment[]>(`${this.apiUrl}/my-doctor-appointments`).pipe(
-          map(appointments => {
-            console.log('Raw API Response for appointments:', JSON.stringify(appointments, null, 2));
-            const normalized = this.normalizeAppointments(appointments);
-            console.log('After normalization:', JSON.stringify(normalized, null, 2));
-            return normalized;
-          })
-        );
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    });
+
+    console.log('Making request with headers:', headers.keys());
+    return this.http.get<Appointment[]>(`${this.apiUrl}/my-doctor-appointments`, { headers }).pipe(
+      map(appointments => {
+        console.log('Raw API Response for appointments:', JSON.stringify(appointments, null, 2));
+        const normalized = this.normalizeAppointments(appointments);
+        console.log('After normalization:', JSON.stringify(normalized, null, 2));
+        return normalized;
       }),
       catchError(error => {
         console.error('Error getting doctor appointments:', error);
@@ -441,5 +443,27 @@ export class AppointmentService {
     }
     console.log('Could not extract ID, returning null');
     return null;
+  }
+
+  // Get appointments for a specific doctor (for patients booking appointments)
+  getDoctorAppointments(doctorId: number): Observable<Appointment[]> {
+    console.log('Getting appointments for doctor:', doctorId);
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+      'Content-Type': 'application/json'
+    });
+
+    return this.http.get<Appointment[]>(`${this.apiUrl}/doctor/${doctorId}/appointments`, { headers }).pipe(
+      map(appointments => {
+        console.log('Raw API Response for doctor appointments:', appointments);
+        const normalized = this.normalizeAppointments(appointments);
+        console.log('Normalized doctor appointments:', normalized);
+        return normalized;
+      }),
+      catchError(error => {
+        console.error('Error getting doctor appointments:', error);
+        return throwError(() => new Error('Failed to get doctor appointments'));
+      })
+    );
   }
 } 

@@ -538,23 +538,20 @@ export class AppointmentCalendarComponent implements OnInit {
   
   calculateAppointmentPosition(appt: Appointment): number {
     try {
-      // Vérifier si la date est au format DD/MM/YYYY
-      let dateString = appt.appointmentDateTime;
-      
-      const date = new Date(dateString);
+      const date = new Date(appt.appointmentDateTime);
       
       if (isNaN(date.getTime())) {
         console.error('Date invalide pour le positionnement du rendez-vous:', appt.appointmentDateTime);
         return 0;
       }
       
+      // Get hours and minutes in local time
       const hours = date.getHours();
       const minutes = date.getMinutes();
       
       console.log(`Position du rendez-vous ${appt.id}: ${hours}h${minutes} -> y=${(hours - 8) * 60 + (minutes / 60) * 60}px`);
       
-      // Calculer la position en fonction de l'heure (60px par heure)
-      // 8h00 est la première heure (0px), chaque heure = 60px
+      // Calculate position based on local time
       return (hours - 8) * 60 + (minutes / 60) * 60;
     } catch (error) {
       console.error('Erreur lors du calcul de la position du rendez-vous:', error);
@@ -570,24 +567,20 @@ export class AppointmentCalendarComponent implements OnInit {
   
   formatTime(dateTime: string): string {
     try {
-      // Vérifier si la date est au format DD/MM/YYYY
-      let dateString = dateTime;
-      if (typeof dateString === 'string' && dateString.match(/^\d{2}\/\d{2}\/\d{4}/)) {
-        // Si la date est directement au format "DD/MM/YYYY HH:MM"
-        const parts = dateString.split(' ');
-        if (parts.length > 1) {
-          return parts[1]; // Retourner directement "HH:MM"
-        }
+      // If the date is in ISO format (from the backend)
+      const date = new Date(dateTime);
+      if (!isNaN(date.getTime())) {
+        // Format the time in local timezone
+        return date.toLocaleTimeString('fr-FR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
       }
       
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        console.error('Date invalide pour le formatage:', dateTime);
-        return '--:--';
-      }
-      
-      return date.getHours().toString().padStart(2, '0') + ':' + 
-             date.getMinutes().toString().padStart(2, '0');
+      // Fallback for invalid dates
+      console.error('Date invalide pour le formatage:', dateTime);
+      return '--:--';
     } catch (error) {
       console.error('Erreur lors du formatage de l\'heure:', error);
       return '--:--';

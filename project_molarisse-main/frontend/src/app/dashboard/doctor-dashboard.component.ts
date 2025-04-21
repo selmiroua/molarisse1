@@ -28,6 +28,7 @@ import { DoctorVerification } from '../core/models/doctor-verification.model';
 import { ProfileService } from '../profile/profile.service';
 import { environment } from '../../environments/environment';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 interface User {
   firstName: string;
@@ -100,7 +101,8 @@ export class DoctorDashboardComponent implements OnInit {
     private doctorVerificationService: DoctorVerificationService,
     private notificationService: NotificationService,
     private appointmentService: AppointmentService,
-    private profileService: ProfileService
+    private profileService: ProfileService,
+    private snackBar: MatSnackBar
   ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -295,19 +297,38 @@ export class DoctorDashboardComponent implements OnInit {
   }
 
   private loadAppointmentStats(): void {
-    this.appointmentService.getMyAppointments().subscribe({
+    this.appointmentService.getMyDoctorAppointments().subscribe({
       next: (appointments: any[]) => {
+        // Get today's date at midnight for comparison
         const today = new Date();
-        this.todayAppointments = appointments.filter(apt => 
-          new Date(apt.date).toDateString() === today.toDateString()
-        ).length;
+        today.setHours(0, 0, 0, 0);
+        
+        // Count today's appointments (all appointments for today regardless of status)
+        this.todayAppointments = appointments.filter(apt => {
+          const aptDate = new Date(apt.appointmentDateTime);
+          aptDate.setHours(0, 0, 0, 0);
+          return aptDate.getTime() === today.getTime();
+        }).length;
+        
+        // Count pending appointments (appointments with PENDING status)
         this.pendingAppointments = appointments.filter(apt => 
           apt.status === 'PENDING'
         ).length;
+        
+        // Total appointments (all appointments regardless of status)
         this.totalAppointments = appointments.length;
+        
+        // Log the counts for debugging
+        console.log('Appointment Stats:', {
+          today: this.todayAppointments,
+          pending: this.pendingAppointments,
+          total: this.totalAppointments,
+          appointments: appointments
+        });
       },
       error: (error: Error) => {
         console.error('Error loading appointment stats:', error);
+        this.snackBar.open('Erreur lors du chargement des statistiques', 'Fermer', { duration: 3000 });
       }
     });
   }

@@ -276,4 +276,20 @@ public class AppointmentController {
                     .body(Map.of("error", e.getMessage()));
         }
     }
+
+    @GetMapping("/doctor/{doctorId}/appointments")
+    @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'SECRETAIRE')")
+    public ResponseEntity<List<Appointment>> getDoctorAppointments(
+            @PathVariable Integer doctorId,
+            Authentication authentication
+    ) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+            List<Appointment> appointments = appointmentService.getAppointmentsForDoctor(doctorId);
+            return ResponseEntity.ok(appointments);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(List.of());
+        }
+    }
 }

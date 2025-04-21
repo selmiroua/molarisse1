@@ -10,7 +10,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatNativeDateModule } from '@angular/material/core';
 import { Router } from '@angular/router';
-import { AppointmentService, AppointmentType, CaseType } from '../../core/services/appointment.service';
+import { AppointmentService, AppointmentType, CaseType, AppointmentStatus } from '../../core/services/appointment.service';
 import { HttpClient, HttpClientModule, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -18,6 +18,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { FichePatientComponent } from '../../fiche-patient/fiche-patient.component';
+import { AuthService } from '../../core/services/auth.service';
+import { switchMap, map } from 'rxjs/operators';
 
 // Define this inline instead of importing from a non-existent file
 export interface User {
@@ -28,6 +30,12 @@ export interface User {
   email?: string;
   phoneNumber?: string;
   profilePicture?: string;
+}
+
+interface DoctorAppointment {
+  appointmentDateTime: string;
+  appointmentType: AppointmentType;
+  status: AppointmentStatus;
 }
 
 @Component({
@@ -98,24 +106,36 @@ export interface User {
             <h3 class="section-label">
               <mat-icon>event</mat-icon> Date et Heure
             </h3>
-            <div class="form-row">
+            <div class="form-row date-time-section">
               <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Date du rendez-vous</mat-label>
-                <input matInput [matDatepicker]="picker" formControlName="appointmentDate" placeholder="Choisir une date">
+                <input matInput [matDatepicker]="picker" formControlName="appointmentDate" 
+                       [min]="minDate" placeholder="Choisir une date">
                 <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
                 <mat-datepicker #picker></mat-datepicker>
                 <mat-error *ngIf="form.get('appointmentDate')?.hasError('required')">
                   La date est obligatoire
                 </mat-error>
               </mat-form-field>
-            
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Heure</mat-label>
-                <input matInput type="time" formControlName="appointmentTime">
-                <mat-error *ngIf="form.get('appointmentTime')?.hasError('required')">
+
+              <div class="time-slots-container">
+                <h4>Horaires disponibles</h4>
+                <div class="time-slots-grid">
+                  <button type="button"
+                          *ngFor="let slot of allTimeSlots"
+                          [class.selected]="form.get('appointmentTime')?.value === slot.time"
+                          [class.unavailable]="!slot.available"
+                          [disabled]="!slot.available"
+                          (click)="selectTimeSlot(slot.time)"
+                          mat-stroked-button>
+                    {{ slot.time }}
+                    <span class="slot-status" *ngIf="!slot.available">(Indisponible)</span>
+                  </button>
+                </div>
+                <mat-error *ngIf="form.get('appointmentTime')?.hasError('required') && form.get('appointmentTime')?.touched">
                   L'heure est obligatoire
                 </mat-error>
-              </mat-form-field>
+              </div>
             </div>
           </div>
           
@@ -526,9 +546,92 @@ export interface User {
       background-color: #4CAF50;
       animation: progressAnimation 0.5s ease forwards;
     }
+
+    .date-time-section {
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .time-slots-container {
+      background: #ffffff;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .time-slots-container h4 {
+      margin: 0 0 16px 0;
+      color: #2196F3;
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .time-slots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .time-slots-grid button {
+      position: relative;
+      padding: 8px;
+      min-width: unset;
+      line-height: 24px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      border-color: #ddd;
+      transition: all 0.2s ease;
+    }
+
+    .time-slots-grid button.unavailable {
+      opacity: 0.7;
+      background-color: #f5f5f5;
+      border-color: #ddd;
+      cursor: not-allowed;
+    }
+
+    .time-slots-grid button:not(.unavailable) {
+      background-color: #ffffff;
+      border-color: #2196F3;
+      color: #2196F3;
+    }
+
+    .time-slots-grid button:not(.unavailable):hover {
+      background-color: #e3f2fd;
+      transform: translateY(-2px);
+      box-shadow: 0 2px 5px rgba(33, 150, 243, 0.2);
+    }
+
+    .time-slots-grid button.selected:not(.unavailable) {
+      background-color: #2196F3;
+      color: white;
+      border-color: #2196F3;
+      box-shadow: 0 2px 5px rgba(33, 150, 243, 0.3);
+    }
+
+    .slot-status {
+      display: block;
+      font-size: 11px;
+      color: #f44336;
+      margin-top: 2px;
+    }
+
+    @media (max-width: 600px) {
+      .time-slots-grid {
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+      }
+
+      .time-slots-grid button {
+        font-size: 13px;
+        padding: 6px;
+      }
+    }
   `]
 })
-export class AppointmentFormDialogComponent {
+export class AppointmentFormDialogComponent implements OnInit {
   form: FormGroup;
   submitting = false;
   showSuccessPrompt = false;
@@ -538,7 +641,21 @@ export class AppointmentFormDialogComponent {
   currentStep = 1;
   temporaryAppointmentData: any = null;
   fichePatientCompleted = false;
+  availableTimeSlots: string[] = [];
+  minDate = new Date();
+  doctorAppointments: DoctorAppointment[] = [];
   
+  appointmentDurations: { [key in AppointmentType]: number } = {
+    DETARTRAGE: 30,
+    SOIN: 45,
+    EXTRACTION: 60,
+    BLANCHIMENT: 90,
+    ORTHODONTIE: 60
+  };
+
+  // Add this property to store all time slots with their availability
+  allTimeSlots: { time: string; available: boolean }[] = [];
+
   constructor(
     private fb: FormBuilder,
     private appointmentService: AppointmentService,
@@ -546,8 +663,13 @@ export class AppointmentFormDialogComponent {
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     @Inject(MAT_DIALOG_DATA) public doctor: User,
-    private http: HttpClient
+    private http: HttpClient,
+    private authService: AuthService
   ) {
+    // Set minDate to today
+    this.minDate.setHours(0, 0, 0, 0);
+
+    // Initialize form
     this.form = this.fb.group({
       appointmentDate: ['', Validators.required],
       appointmentTime: ['', Validators.required],
@@ -555,57 +677,336 @@ export class AppointmentFormDialogComponent {
       appointmentType: [AppointmentType.DETARTRAGE, Validators.required],
       notes: ['']
     });
+
+    // Subscribe to changes
+    this.form.get('appointmentDate')?.valueChanges.subscribe(() => {
+      this.updateAvailableTimeSlots();
+    });
+
+    this.form.get('appointmentType')?.valueChanges.subscribe(() => {
+      this.updateAvailableTimeSlots();
+    });
   }
   
+  ngOnInit() {
+    // Load doctor's appointments when component initializes
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      console.error('No authentication token found');
+      this.snackBar.open('Erreur d\'authentification. Veuillez vous reconnecter.', 'Fermer', { duration: 3000 });
+      return;
+    }
+
+    // For debugging - log the token
+    console.log('Token found:', token);
+
+    try {
+      const tokenParts = token.split('.');
+      const tokenPayload = atob(tokenParts[1]);
+      const tokenData = JSON.parse(tokenPayload);
+      
+      // Log the entire token data for debugging
+      console.log('Decoded token data:', tokenData);
+
+      // Load doctor's appointments regardless of role
+      this.loadDoctorAppointments();
+    } catch (error) {
+      console.error('Error processing token:', error);
+      this.snackBar.open('Erreur d\'authentification', 'Fermer', { duration: 3000 });
+    }
+  }
+
+  private loadDoctorAppointments() {
+    console.log('Loading appointments for doctor:', this.doctor.id);
+    
+    this.appointmentService.getDoctorAppointments(this.doctor.id).subscribe({
+        next: (appointments) => {
+            console.log('DEBUG - All appointments received:', appointments);
+            
+            // Store all appointments
+            this.doctorAppointments = appointments;
+            
+            // Log each appointment's details
+            appointments.forEach(apt => {
+                console.log('Appointment details:', {
+                    dateTime: apt.appointmentDateTime,
+                    parsedDate: new Date(apt.appointmentDateTime).toLocaleString(),
+                    status: apt.status,
+                    type: apt.appointmentType
+                });
+            });
+
+            // Log only accepted appointments
+            const acceptedAppointments = appointments.filter(apt => {
+                const isAccepted = apt.status === 'ACCEPTED';
+                console.log(`Appointment status check:`, {
+                    appointmentTime: new Date(apt.appointmentDateTime).toLocaleString(),
+                    status: apt.status,
+                    isAccepted: isAccepted
+                });
+                return isAccepted;
+            });
+
+            console.log('DEBUG - Accepted appointments:', acceptedAppointments);
+
+            // Update time slots if we have a selected date and type
+            const selectedDate = this.form.get('appointmentDate')?.value;
+            const selectedType = this.form.get('appointmentType')?.value;
+            if (selectedDate && selectedType) {
+                this.generateAvailableTimeSlots(selectedDate, selectedType);
+            }
+        },
+        error: (error) => {
+            console.error('Error loading doctor appointments:', error);
+            this.snackBar.open('Erreur lors du chargement des rendez-vous', 'Fermer', { duration: 3000 });
+            this.doctorAppointments = [];
+            this.allTimeSlots = [];
+            this.availableTimeSlots = [];
+        }
+    });
+  }
+
+  private updateAvailableTimeSlots() {
+    const selectedDate = this.form.get('appointmentDate')?.value;
+    const selectedType = this.form.get('appointmentType')?.value;
+    
+    if (!selectedDate || !selectedType || !this.doctorAppointments) {
+      this.allTimeSlots = [];
+      this.availableTimeSlots = [];
+      return;
+    }
+
+    // Convert to Date object if it isn't already
+    const date = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
+    
+    // Reset time to start of day to avoid timezone issues
+    date.setHours(0, 0, 0, 0);
+    
+    this.generateAvailableTimeSlots(date, selectedType);
+  }
+
+  private generateAvailableTimeSlots(date: Date, appointmentType: AppointmentType) {
+    console.log('DEBUG - Generating time slots for date:', date);
+    
+    // Reset available time slots
+    this.availableTimeSlots = [];
+    this.allTimeSlots = [];
+
+    // Create a new date object at the start of the selected day in local timezone
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    // Get all ACCEPTED appointments for the selected date
+    const dayAppointments = this.doctorAppointments.filter(appointment => {
+        const appointmentDate = new Date(appointment.appointmentDateTime);
+        const appointmentDayStart = new Date(appointmentDate);
+        appointmentDayStart.setHours(0, 0, 0, 0);
+        
+        const isOnSelectedDate = appointmentDayStart.getTime() === selectedDate.getTime();
+        const isAccepted = appointment.status === 'ACCEPTED';
+        
+        console.log('Checking appointment:', {
+            date: appointmentDate.toLocaleString(),
+            status: appointment.status,
+            isOnSelectedDate,
+            isAccepted
+        });
+        
+        return isOnSelectedDate && isAccepted;
+    });
+
+    console.log('Accepted appointments for selected date:', dayAppointments.map(apt => ({
+        time: new Date(apt.appointmentDateTime).toLocaleTimeString(),
+        status: apt.status
+    })));
+
+    // Generate all possible time slots between 8:00 and 17:00
+    for (let hour = 8; hour < 17; hour++) {
+        for (let minute = 0; minute < 60; minute += 30) {
+            const timeSlot = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+            
+            // Check if this exact time matches with any accepted appointment
+            const isSlotTaken = dayAppointments.some(appointment => {
+                const appointmentDate = new Date(appointment.appointmentDateTime);
+                const appointmentHour = appointmentDate.getHours();
+                const appointmentMinute = appointmentDate.getMinutes();
+                
+                const isMatch = appointmentHour === hour && appointmentMinute === minute;
+                if (isMatch) {
+                    console.log(`Slot ${timeSlot} matches with accepted appointment at ${appointmentDate.toLocaleString()}`);
+                }
+                return isMatch;
+            });
+
+            // A slot is available if it doesn't match any accepted appointment
+            const available = !isSlotTaken;
+            
+            this.allTimeSlots.push({
+                time: timeSlot,
+                available: available
+            });
+
+            if (available) {
+                this.availableTimeSlots.push(timeSlot);
+            }
+        }
+    }
+
+    // Sort the time slots
+    this.allTimeSlots.sort((a, b) => a.time.localeCompare(b.time));
+    
+    console.log('Time slots status:', this.allTimeSlots.map(slot => ({
+        time: slot.time,
+        available: slot.available
+    })));
+  }
+
+  private checkTimeSlotOverlap(
+    hour: number,
+    minute: number,
+    duration: number,
+    dayAppointments: DoctorAppointment[],
+    selectedDate: Date
+  ): boolean {
+    // Create start and end times for the proposed slot
+    const slotStart = new Date(selectedDate);
+    slotStart.setHours(hour, minute, 0, 0);
+    
+    const slotEnd = new Date(slotStart);
+    slotEnd.setMinutes(slotStart.getMinutes() + duration);
+
+    // Add buffer times (15 minutes before and after)
+    const bufferStart = new Date(slotStart);
+    bufferStart.setMinutes(bufferStart.getMinutes() - 15);
+    const bufferEnd = new Date(slotEnd);
+    bufferEnd.setMinutes(bufferEnd.getMinutes() + 15);
+
+    // Check against each existing appointment
+    return dayAppointments.some(appointment => {
+      const appointmentDateTime = new Date(appointment.appointmentDateTime);
+      const appointmentDuration = this.appointmentDurations[appointment.appointmentType];
+      const appointmentEnd = new Date(appointmentDateTime);
+      appointmentEnd.setMinutes(appointmentDateTime.getMinutes() + appointmentDuration);
+
+      // Debug logging
+      console.log('Checking overlap:', {
+        slot: `${hour}:${minute}`,
+        slotStart: slotStart.toLocaleTimeString(),
+        slotEnd: slotEnd.toLocaleTimeString(),
+        appointmentStart: appointmentDateTime.toLocaleTimeString(),
+        appointmentEnd: appointmentEnd.toLocaleTimeString(),
+        bufferStart: bufferStart.toLocaleTimeString(),
+        bufferEnd: bufferEnd.toLocaleTimeString()
+      });
+
+      // Check if the slots overlap including buffer times
+      const hasOverlap = (
+        (bufferStart < appointmentEnd && bufferEnd > appointmentDateTime)
+      );
+
+      if (hasOverlap) {
+        console.log(`Slot ${hour}:${minute} overlaps with appointment at ${appointmentDateTime.toLocaleTimeString()}`);
+      }
+
+      return hasOverlap;
+    });
+  }
+
+  private calculateEndTime(hour: number, minute: number, durationMinutes: number): Date {
+    const endTime = new Date();
+    endTime.setHours(hour, minute + durationMinutes, 0, 0);
+    return endTime;
+  }
+
   onSubmit(): void {
     if (this.form.invalid || this.submitting) return;
     
-    this.submitting = true;
-    this.currentStep = 2;
-    
     const formValues = this.form.value;
-    const date = new Date(formValues.appointmentDate);
-    const timeParts = formValues.appointmentTime.split(':');
+    const selectedTime = formValues.appointmentTime;
     
-    if (timeParts.length !== 2) {
-      this.snackBar.open('Format d\'heure invalide.', 'Fermer', { duration: 3000 });
-      this.submitting = false;
-      return;
+    // Check if the selected time slot is still available
+    const isTimeSlotAvailable = this.allTimeSlots.find(
+        slot => slot.time === selectedTime && slot.available
+    );
+    
+    if (!isTimeSlotAvailable) {
+        this.snackBar.open('Cette plage horaire n\'est plus disponible. Veuillez en choisir une autre.', 'Fermer', { duration: 3000 });
+        return;
     }
 
-    date.setHours(parseInt(timeParts[0], 10), parseInt(timeParts[1], 10));
+    this.submitting = true;
 
-    // Get the patient ID from the appointment data
+    // Check for existing appointments first
     const token = localStorage.getItem('access_token');
     if (!token) {
-      this.snackBar.open('Erreur: Token d\'authentification manquant', 'Fermer', { duration: 3000 });
-      this.submitting = false;
-      return;
+        this.snackBar.open('Erreur: Token d\'authentification manquant', 'Fermer', { duration: 3000 });
+        this.submitting = false;
+        return;
     }
 
     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-    this.http.get<any>(`${environment.apiUrl}/api/v1/api/patients/me`, { headers }).subscribe({
-      next: (response) => {
-        // Store the appointment data with the correct patient ID
-        this.temporaryAppointmentData = {
-          patientId: response.id, // Use the actual patient ID from the response
-          doctorId: this.doctor.id,
-          appointmentDateTime: date.toISOString(),
-          caseType: formValues.caseType,
-          appointmentType: formValues.appointmentType,
-          notes: formValues.notes
-        };
+    
+    // First check for existing appointments
+    this.http.get<any[]>(`${environment.apiUrl}/api/v1/api/appointments/my-appointments`, { headers }).subscribe({
+        next: (appointments) => {
+            const hasExistingAppointment = appointments.some(apt => 
+                apt.status === 'PENDING' || apt.status === 'ACCEPTED'
+            );
 
-        // Show success prompt to fill fiche patient first
-        this.submitting = false;
-        this.showSuccessPrompt = true;
-        this.currentStep = 3;
-      },
-      error: (error) => {
-        console.error('Error getting patient ID:', error);
-        this.snackBar.open('Erreur lors de la récupération des informations du patient', 'Fermer', { duration: 3000 });
-        this.submitting = false;
-      }
+            if (hasExistingAppointment) {
+                this.snackBar.open(
+                    'Vous avez déjà un rendez-vous en attente ou confirmé. Veuillez attendre que votre rendez-vous actuel soit terminé avant d\'en prendre un nouveau.',
+                    'Fermer',
+                    { duration: 5000 }
+                );
+                this.submitting = false;
+                this.dialogRef.close();
+                return;
+            }
+
+            this.currentStep = 2;
+            
+            const date = new Date(formValues.appointmentDate);
+            const [hours, minutes] = selectedTime.split(':').map(Number);
+            
+            // Create a date string that explicitly includes the timezone offset
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            const hoursStr = hours.toString().padStart(2, '0');
+            const minutesStr = minutes.toString().padStart(2, '0');
+            
+            // Create an ISO string but preserve the local time
+            const localISOString = `${year}-${month}-${day}T${hoursStr}:${minutesStr}:00.000Z`;
+
+            // Get the patient ID and proceed with appointment creation
+            this.http.get<any>(`${environment.apiUrl}/api/v1/api/patients/me`, { headers }).subscribe({
+                next: (response) => {
+                    this.temporaryAppointmentData = {
+                        patientId: response.id,
+                        doctorId: this.doctor.id,
+                        appointmentDateTime: localISOString,
+                        caseType: formValues.caseType,
+                        appointmentType: formValues.appointmentType,
+                        notes: formValues.notes
+                    };
+
+                    this.submitting = false;
+                    this.showSuccessPrompt = true;
+                    this.currentStep = 3;
+                },
+                error: (error) => {
+                    console.error('Error getting patient ID:', error);
+                    this.snackBar.open('Erreur lors de la récupération des informations du patient', 'Fermer', { duration: 3000 });
+                    this.submitting = false;
+                }
+            });
+        },
+        error: (error) => {
+            console.error('Error checking existing appointments:', error);
+            this.snackBar.open('Erreur lors de la vérification des rendez-vous existants.', 'Fermer', { duration: 5000 });
+            this.submitting = false;
+        }
     });
   }
 
@@ -679,6 +1080,18 @@ export class AppointmentFormDialogComponent {
       return; // Prevent closing while submitting
     }
     this.dialogRef.close(this.fichePatientCompleted);
+  }
+
+  selectTimeSlot(slot: string) {
+    const timeSlot = this.allTimeSlots.find(s => s.time === slot);
+    if (timeSlot && timeSlot.available) {
+        this.form.patchValue({ appointmentTime: slot });
+    }
+  }
+
+  isTimeSlotAvailable(slot: string): boolean {
+    const timeSlot = this.allTimeSlots.find(s => s.time === slot);
+    return timeSlot ? timeSlot.available : false;
   }
 }
 
@@ -1016,16 +1429,42 @@ export class AppointmentFormDialogComponent {
 export class BookAppointmentComponent implements OnInit {
   loading = false;
   doctors: User[] = [];
+  hasExistingAppointment = false;
   
   constructor(
     private snackBar: MatSnackBar,
     private http: HttpClient,
     private dialog: MatDialog,
-    private router: Router
+    private router: Router,
+    private appointmentService: AppointmentService
   ) {}
 
   ngOnInit(): void {
+    this.checkExistingAppointments();
     this.fetchDoctors();
+  }
+
+  checkExistingAppointments(): void {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      console.error('No authentication token found');
+      this.snackBar.open('Erreur d\'authentification. Veuillez vous reconnecter.', 'Fermer', { duration: 5000 });
+      return;
+    }
+
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+    this.http.get<any[]>(`${environment.apiUrl}/api/v1/api/appointments/my-appointments`, { headers }).subscribe({
+      next: (appointments) => {
+        // Check if there are any pending or accepted appointments
+        this.hasExistingAppointment = appointments.some(apt => 
+          apt.status === 'PENDING' || apt.status === 'ACCEPTED'
+        );
+      },
+      error: (error) => {
+        console.error('Error checking existing appointments:', error);
+        this.snackBar.open('Erreur lors de la vérification des rendez-vous existants.', 'Fermer', { duration: 5000 });
+      }
+    });
   }
 
   fetchDoctors(): void {
@@ -1041,33 +1480,53 @@ export class BookAppointmentComponent implements OnInit {
 
     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
 
-    this.http.get<User[]>(`${environment.apiUrl}/api/v1/api/users/doctors`, { headers }).subscribe({
+    // First get approved doctor verifications
+    this.http.get<any[]>(`${environment.apiUrl}/api/v1/api/doctor-verifications/approved`, { headers }).pipe(
+      switchMap(approvedDoctors => {
+        // Get the IDs of approved doctors
+        const approvedDoctorIds = approvedDoctors.map(doc => doc.doctorId);
+        console.log('Approved doctor IDs:', approvedDoctorIds);
+
+        // Then get all doctors and filter by approved IDs
+        return this.http.get<User[]>(`${environment.apiUrl}/api/v1/api/users/doctors`, { headers }).pipe(
+          map(doctors => doctors.filter(doctor => approvedDoctorIds.includes(doctor.id)))
+        );
+      })
+    ).subscribe({
       next: (doctors) => {
         this.doctors = doctors;
-        console.log('Médecins disponibles:', doctors);
+        console.log('Médecins approuvés disponibles:', doctors);
         this.loading = false;
       },
       error: (error) => {
         console.error('Erreur lors du chargement des médecins', error);
         this.snackBar.open('Impossible de charger la liste des médecins. Veuillez réessayer plus tard.', 'Fermer', { duration: 5000 });
         this.loading = false;
-        
-        // Données fictives pour tester l'interface
-        this.doctors = [
-          { id: 1, nom: 'Smith', prenom: 'John', specialization: 'Dentiste généraliste', email: 'smith@example.com', phoneNumber: '06 12 34 56 78' },
-          { id: 2, nom: 'Johnson', prenom: 'Sarah', specialization: 'Orthodontiste', email: 'johnson@example.com', phoneNumber: '06 23 45 67 89' },
-          { id: 3, nom: 'Williams', prenom: 'Robert', specialization: 'Chirurgien maxillo-facial', email: 'williams@example.com', phoneNumber: '06 34 56 78 90' },
-          { id: 4, nom: 'Brown', prenom: 'Emma', specialization: 'Parodontiste', email: 'brown@example.com', phoneNumber: '06 45 67 89 01' }
-        ];
       }
     });
   }
 
   openAppointmentDialog(doctor: User): void {
-    this.dialog.open(AppointmentFormDialogComponent, {
+    if (this.hasExistingAppointment) {
+      this.snackBar.open(
+        'Vous avez déjà un rendez-vous en attente ou confirmé. Veuillez attendre que votre rendez-vous actuel soit terminé avant d\'en prendre un nouveau.',
+        'Fermer',
+        { duration: 5000 }
+      );
+      return;
+    }
+
+    const dialogRef = this.dialog.open(AppointmentFormDialogComponent, {
       width: '600px',
       panelClass: 'appointment-dialog-container',
       data: doctor
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        // Refresh the existing appointments check
+        this.checkExistingAppointments();
+      }
     });
   }
 } 
