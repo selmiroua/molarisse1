@@ -292,4 +292,69 @@ public class AppointmentController {
                     .body(List.of());
         }
     }
+
+    @GetMapping("/patient")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<List<Map<String, Object>>> getCurrentPatientAppointments(Authentication authentication) {
+        // Get the authenticated patient
+        User patient = (User) authentication.getPrincipal();
+        
+        List<Appointment> appointments = appointmentService.getAppointmentsForPatient(patient.getId());
+        
+        List<Map<String, Object>> simplifiedAppointments = appointments.stream()
+            .map(appointment -> {
+                Map<String, Object> simplified = new HashMap<>();
+                simplified.put("id", appointment.getId());
+                simplified.put("appointmentDateTime", appointment.getAppointmentDateTime());
+                simplified.put("status", appointment.getStatus());
+                simplified.put("appointmentType", appointment.getAppointmentType());
+                simplified.put("caseType", appointment.getCaseType());
+                simplified.put("notes", appointment.getNotes());
+                
+                if (appointment.getDoctor() != null) {
+                    Map<String, Object> doctor = new HashMap<>();
+                    doctor.put("id", appointment.getDoctor().getId());
+                    doctor.put("nom", appointment.getDoctor().getNom());
+                    doctor.put("prenom", appointment.getDoctor().getPrenom());
+                    doctor.put("email", appointment.getDoctor().getEmail());
+                    doctor.put("phoneNumber", appointment.getDoctor().getPhoneNumber());
+                    simplified.put("doctor", doctor);
+                }
+                
+                return simplified;
+            })
+            .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(simplifiedAppointments);
+    }
+
+    @PutMapping("/update/{appointmentId}")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<Appointment> updateAppointment(
+            @PathVariable Integer appointmentId,
+            @RequestBody Appointment updatedAppointment,
+            Authentication authentication
+    ) {
+        User patient = (User) authentication.getPrincipal();
+        
+        try {
+            // Verify that the appointment belongs to the authenticated patient
+            Appointment existingAppointment = appointmentService.findById(appointmentId);
+            if (existingAppointment == null || !existingAppointment.getPatient().getId().equals(patient.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            
+            // Update only allowed fields
+            existingAppointment.setAppointmentDateTime(updatedAppointment.getAppointmentDateTime());
+            existingAppointment.setNotes(updatedAppointment.getNotes());
+            
+            // Reset status to PENDING when rescheduling
+            existingAppointment.setStatus(Appointment.AppointmentStatus.PENDING);
+            
+            Appointment savedAppointment = appointmentService.save(existingAppointment);
+            return ResponseEntity.ok(savedAppointment);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
 }

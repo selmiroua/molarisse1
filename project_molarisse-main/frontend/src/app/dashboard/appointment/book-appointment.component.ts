@@ -1480,22 +1480,11 @@ export class BookAppointmentComponent implements OnInit {
 
     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
 
-    // First get approved doctor verifications
-    this.http.get<any[]>(`${environment.apiUrl}/api/v1/api/doctor-verifications/approved`, { headers }).pipe(
-      switchMap(approvedDoctors => {
-        // Get the IDs of approved doctors
-        const approvedDoctorIds = approvedDoctors.map(doc => doc.doctorId);
-        console.log('Approved doctor IDs:', approvedDoctorIds);
-
-        // Then get all doctors and filter by approved IDs
-        return this.http.get<User[]>(`${environment.apiUrl}/api/v1/api/users/doctors`, { headers }).pipe(
-          map(doctors => doctors.filter(doctor => approvedDoctorIds.includes(doctor.id)))
-        );
-      })
-    ).subscribe({
+    // Get all doctors directly without checking verifications
+    this.http.get<User[]>(`${environment.apiUrl}/api/v1/api/users/doctors`, { headers }).subscribe({
       next: (doctors) => {
         this.doctors = doctors;
-        console.log('Médecins approuvés disponibles:', doctors);
+        console.log('Médecins disponibles:', doctors);
         this.loading = false;
       },
       error: (error) => {

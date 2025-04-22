@@ -37,22 +37,22 @@ import { ProfileService } from '../../profile/profile.service';
       <div class="header">
         <h2>{{ title }}</h2>
         <button *ngIf="userRole === 'patient'" mat-raised-button color="primary" (click)="navigateToBooking()">
-          Book New Appointment
+          Nouveau Rendez-vous
         </button>
       </div>
 
       <div *ngIf="loading" class="loading">
-        Loading appointments...
+        Chargement des rendez-vous...
       </div>
 
       <div *ngIf="!loading && appointments.length === 0" class="no-data">
-        No appointments found.
+        Aucun rendez-vous trouvé.
       </div>
 
       <table *ngIf="!loading && appointments.length > 0" mat-table [dataSource]="appointments" class="appointment-table">
         <!-- Date Column -->
         <ng-container matColumnDef="appointmentDateTime">
-          <th mat-header-cell *matHeaderCellDef>Date & Time</th>
+          <th mat-header-cell *matHeaderCellDef>Date & Heure</th>
           <td mat-cell *matCellDef="let appointment">
             {{ getDateDisplay(appointment.appointmentDateTime) }}
           </td>
@@ -60,10 +60,10 @@ import { ProfileService } from '../../profile/profile.service';
 
         <!-- Status Column -->
         <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <th mat-header-cell *matHeaderCellDef>Statut</th>
           <td mat-cell *matCellDef="let appointment">
             <span class="status-badge" [ngClass]="getStatusClass(appointment.status)">
-              {{ appointment.status }}
+              {{ getStatusLabel(appointment.status) }}
             </span>
           </td>
         </ng-container>
@@ -78,7 +78,7 @@ import { ProfileService } from '../../profile/profile.service';
 
         <!-- Case Column -->
         <ng-container matColumnDef="case">
-          <th mat-header-cell *matHeaderCellDef>Case</th>
+          <th mat-header-cell *matHeaderCellDef>Cas</th>
           <td mat-cell *matCellDef="let appointment">
             {{ appointment.caseType }}
           </td>
@@ -86,7 +86,7 @@ import { ProfileService } from '../../profile/profile.service';
 
         <!-- Doctor/Patient Column -->
         <ng-container matColumnDef="person">
-          <th mat-header-cell *matHeaderCellDef>{{ userRole === 'patient' ? 'Doctor' : 'Patient' }}</th>
+          <th mat-header-cell *matHeaderCellDef>{{ userRole === 'patient' ? 'Médecin' : 'Patient' }}</th>
           <td mat-cell *matCellDef="let appointment">
             <ng-container *ngIf="userRole === 'patient' && appointment.doctor">
               Dr. {{ appointment.doctor.prenom }} {{ appointment.doctor.nom }}
@@ -115,7 +115,7 @@ import { ProfileService } from '../../profile/profile.service';
             <mat-menu #menu="matMenu">
               <button mat-menu-item (click)="viewDetails(appointment)">
                 <mat-icon>visibility</mat-icon>
-                <span>View Details</span>
+                <span>Voir les détails</span>
               </button>
               
               <!-- Status update options for doctor/secretary -->
@@ -124,21 +124,21 @@ import { ProfileService } from '../../profile/profile.service';
                         *ngIf="appointment.status === 'PENDING'"
                         (click)="updateStatus(appointment, AppointmentStatus.ACCEPTED)">
                   <mat-icon>check_circle</mat-icon>
-                  <span>Accept</span>
+                  <span>Accepter</span>
                 </button>
                 
                 <button mat-menu-item 
                         *ngIf="appointment.status === 'PENDING'"
                         (click)="updateStatus(appointment, AppointmentStatus.REJECTED)">
                   <mat-icon>cancel</mat-icon>
-                  <span>Reject</span>
+                  <span>Refuser</span>
                 </button>
                 
                 <button mat-menu-item 
                         *ngIf="appointment.status === 'ACCEPTED'"
                         (click)="updateStatus(appointment, AppointmentStatus.COMPLETED)">
                   <mat-icon>task_alt</mat-icon>
-                  <span>Mark as Completed</span>
+                  <span>Marquer comme terminé</span>
                 </button>
               </ng-container>
               
@@ -147,7 +147,7 @@ import { ProfileService } from '../../profile/profile.service';
                       *ngIf="userRole === 'patient' && (appointment.status === 'PENDING' || appointment.status === 'ACCEPTED')"
                       (click)="cancelAppointment(appointment)">
                 <mat-icon>event_busy</mat-icon>
-                <span>Cancel Appointment</span>
+                <span>Annuler le rendez-vous</span>
               </button>
             </mat-menu>
           </td>
@@ -181,36 +181,75 @@ import { ProfileService } from '../../profile/profile.service';
     }
     
     .status-badge {
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
       font-weight: 500;
-      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      transition: all 0.2s ease;
     }
     
     .pending {
-      background-color: #ffecb3;
-      color: #ff8f00;
+      background-color: #FFF8E1;
+      color: #FFA000;
+      border: 1px solid rgba(255, 160, 0, 0.2);
     }
     
     .accepted {
-      background-color: #c8e6c9;
-      color: #2e7d32;
+      background-color: #E8F5E9;
+      color: #2E7D32;
+      border: 1px solid rgba(46, 125, 50, 0.2);
     }
     
     .rejected {
-      background-color: #ffcdd2;
-      color: #c62828;
+      background-color: #FFEBEE;
+      color: #C62828;
+      border: 1px solid rgba(198, 40, 40, 0.2);
     }
     
     .completed {
-      background-color: #e1f5fe;
-      color: #0277bd;
+      background-color: #E3F2FD;
+      color: #1565C0;
+      border: 1px solid rgba(21, 101, 192, 0.2);
     }
     
     .canceled {
-      background-color: #f5f5f5;
+      background-color: #FAFAFA;
       color: #616161;
+      border: 1px solid rgba(97, 97, 97, 0.2);
+    }
+
+    .status-badge::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .pending::before {
+      background-color: #FFA000;
+    }
+
+    .accepted::before {
+      background-color: #2E7D32;
+    }
+
+    .rejected::before {
+      background-color: #C62828;
+    }
+
+    .completed::before {
+      background-color: #1565C0;
+    }
+
+    .canceled::before {
+      background-color: #616161;
     }
   `],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -327,6 +366,23 @@ export class AppointmentListComponent implements OnInit {
 
   getStatusClass(status: string): string {
     return status.toLowerCase();
+  }
+
+  getStatusLabel(status: string): string {
+    switch (status) {
+      case 'PENDING':
+        return 'En attente';
+      case 'ACCEPTED':
+        return 'Accepté';
+      case 'REJECTED':
+        return 'Refusé';
+      case 'COMPLETED':
+        return 'Terminé';
+      case 'CANCELED':
+        return 'Annulé';
+      default:
+        return status;
+    }
   }
 
   navigateToBooking(): void {

@@ -347,4 +347,24 @@ public class AppointmentService {
         // For now, return a placeholder path
         return "uploads/" + file.getOriginalFilename();
     }
+
+    public Appointment save(Appointment appointment) {
+        // Create notification for the doctor about the rescheduled appointment
+        if (appointment.getDoctor() != null) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+            String formattedDateTime = appointment.getAppointmentDateTime().format(formatter);
+            String message = "Appointment rescheduled by patient " + appointment.getPatient().getNom() + 
+                           " to " + formattedDateTime;
+            
+            String link = "/doctor/appointments/" + appointment.getId();
+            notificationService.createNotification(
+                appointment.getDoctor(), 
+                message, 
+                NotificationType.APPOINTMENT_UPDATED,
+                link
+            );
+        }
+        
+        return appointmentRepository.save(appointment);
+    }
 }

@@ -466,4 +466,35 @@ export class AppointmentService {
       })
     );
   }
+
+  getPatientAppointments(): Observable<Appointment[]> {
+    console.log('Fetching patient appointments...');
+    return this.http.get<Appointment[]>(`${this.apiUrl}/patient`).pipe(
+      map(appointments => {
+        console.log('Raw patient appointments:', appointments);
+        const normalized = this.normalizeAppointments(appointments);
+        console.log('Normalized patient appointments:', normalized);
+        return normalized;
+      }),
+      catchError(error => {
+        console.error('Error fetching patient appointments:', error);
+        return throwError(() => new Error('Failed to fetch appointments'));
+      })
+    );
+  }
+
+  // Cancel an appointment
+  cancelAppointment(appointmentId: number): Observable<Appointment> {
+    return this.http.put<Appointment>(
+      `${this.apiUrl}/status/${appointmentId}`,
+      { status: AppointmentStatus.CANCELED },
+      { headers: this.getHeaders() }
+    ).pipe(
+      map(appointment => this.normalizeAppointment(appointment)),
+      catchError(error => {
+        console.error('Error canceling appointment:', error);
+        return throwError(() => new Error('Failed to cancel appointment'));
+      })
+    );
+  }
 } 

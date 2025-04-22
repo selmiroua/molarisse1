@@ -8,7 +8,7 @@ import { User } from '../models/user.model';
   providedIn: 'root'
 })
 export class UserService {
-  private apiUrl = `${environment.apiUrl}/api/v1/users`;
+  private apiUrl = `${environment.apiUrl}/api/v1/api/users`;
   currentUser: any = null;
 
   constructor(private http: HttpClient) {
@@ -66,8 +66,8 @@ export class UserService {
 
   // Get secretary applications (for doctor)
   getSecretaryApplications(): Observable<User[]> {
-    return this.http.get<User[]>(`${this.apiUrl}/doctor/secretary-applications`, { 
-      headers: this.getHeaders() 
+    return this.http.get<User[]>(`${this.apiUrl}/users/doctor/secretary-applications`, {
+      headers: this.getHeaders()
     });
   }
 

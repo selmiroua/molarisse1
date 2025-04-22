@@ -204,18 +204,15 @@ export class SecretaireDashboardComponent implements OnInit {
   }
 
   logout(): void {
-    this.authService.logout().subscribe({
-      next: () => {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('userRole');
-        this.router.navigate(['/login']);
-      },
-      error: (error: unknown) => {
-        console.error('Error during logout:', error);
-        // Still navigate to login even if the server request fails
-        this.router.navigate(['/login']);
-      }
-    });
+    // Clear all storage first
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Call auth service to notify server (non-blocking)
+    this.authService.logout();
+    
+    // Force a complete page reload and redirect
+    window.location.replace('/login');
   }
 
   @HostListener('document:click', ['$event'])

@@ -9,7 +9,7 @@ import { catchError } from 'rxjs/operators';
   providedIn: 'root'
 })
 export class DoctorApplicationService {
-  private apiUrl = `${environment.apiUrl}/api/v1/api/doctor-applications`;
+  private apiUrl = `${environment.apiUrl}/api/v1/api/users/doctor/secretary-applications`;
 
   constructor(private http: HttpClient) { }
 
@@ -29,37 +29,8 @@ export class DoctorApplicationService {
   /**
    * Submit a new application to work with a doctor
    */
-  submitApplication(doctorId: number, message: string, cvFile?: File): Observable<DoctorApplication> {
-    const formData = new FormData();
-    formData.append('doctorId', doctorId.toString());
-    formData.append('message', message);
-    
-    if (cvFile) {
-      formData.append('cvFile', cvFile);
-    }
-    
-    console.log('Submitting application to:', `${this.apiUrl}`);
-    console.log('With data:', { doctorId, message, hasFile: !!cvFile });
-    
-    // Use the direct API endpoint for secretary application from UserController
-    return this.http.post<DoctorApplication>(`${environment.apiUrl}/api/v1/api/users/secretary/apply`, formData)
-      .pipe(
-        catchError(error => {
-          console.error('Error submitting application:', error);
-          // Return a mock successful application submission with the correct status type
-          const mockResponse: DoctorApplication = {
-            id: 1,
-            secretaryId: 1,
-            doctorId: doctorId,
-            message: message,
-            status: 'pending',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            cvFilePath: cvFile ? 'mock_cv_path.pdf' : undefined
-          };
-          return of(mockResponse);
-        })
-      );
+  submitApplication(formData: FormData): Observable<any> {
+    return this.http.post(`${this.apiUrl}/api/v1/api/users/secretary/apply`, formData);
   }
 
   /**

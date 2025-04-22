@@ -27,7 +27,89 @@
   <main class="dashboard-content">
     <div *ngIf="activeSection === 'dashboard'">
       <h2>Bienvenue dans votre espace patient</h2>
-      <!-- Dashboard content here -->
+      <div class="appointments-section">
+        <h3>Mes Rendez-vous</h3>
+        
+        <div *ngIf="loading" class="loading-spinner">
+          <mat-spinner diameter="40"></mat-spinner>
+        </div>
+
+        <div *ngIf="!loading && appointments.length > 0">
+          <div class="rdv-card" *ngFor="let appointment of appointments">
+            <h4>Rendez-vous avec Dr. {{appointment.doctor?.prenom}} {{appointment.doctor?.nom}}</h4>
+            
+            <div class="status-badge" [ngClass]="appointment.status.toLowerCase()">
+              <mat-icon>{{getStatusIcon(appointment.status)}}</mat-icon>
+              <span>{{getStatusLabel(appointment.status)}}</span>
+            </div>
+
+            <div class="rdv-info">
+              <div class="info-group">
+                <span class="label">Date et heure</span>
+                <div class="value">
+                  <mat-icon>event</mat-icon>
+                  {{appointment.appointmentDateTime | date:'dd/MM/yyyy à HH:mm'}}
+                </div>
+              </div>
+
+              <div class="info-group">
+                <span class="label">Type de rendez-vous</span>
+                <div class="value">
+                  <mat-icon>medical_services</mat-icon>
+                  {{getAppointmentTypeLabel(appointment.appointmentType)}}
+                </div>
+              </div>
+
+              <div class="info-group">
+                <span class="label">Niveau d'urgence</span>
+                <div class="value">
+                  <mat-icon>{{getCaseTypeIcon(appointment.caseType)}}</mat-icon>
+                  {{getCaseTypeLabel(appointment.caseType)}}
+                </div>
+              </div>
+
+              <div class="info-group" *ngIf="appointment.notes">
+                <span class="label">Notes</span>
+                <div class="value">
+                  <mat-icon>notes</mat-icon>
+                  {{appointment.notes}}
+                </div>
+              </div>
+            </div>
+
+            <div class="appointment-actions">
+              <button mat-button color="primary" 
+                      *ngIf="appointment.status === 'PENDING'"
+                      (click)="rescheduleAppointment(appointment)">
+                <mat-icon>edit</mat-icon>
+                Modifier
+              </button>
+              <button mat-button color="warn" 
+                      *ngIf="appointment.status === 'PENDING' || appointment.status === 'ACCEPTED'"
+                      (click)="cancelAppointment(appointment)">
+                <mat-icon>cancel</mat-icon>
+                Annuler
+              </button>
+              <button mat-button color="accent" (click)="viewAppointmentDetails(appointment)">
+                <mat-icon>info</mat-icon>
+                Détails
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!loading && appointments.length === 0" class="no-appointments">
+          <div class="empty-icon">
+            <mat-icon>event_busy</mat-icon>
+          </div>
+          <h3>Aucun rendez-vous</h3>
+          <p>Vous n'avez aucun rendez-vous programmé pour le moment.</p>
+          <button mat-raised-button color="primary" (click)="navigateToBookAppointment()">
+            <mat-icon>add</mat-icon>
+            Prendre un rendez-vous
+          </button>
+        </div>
+      </div>
     </div>
     
     <div *ngIf="activeSection === 'profile'">

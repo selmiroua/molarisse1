@@ -407,4 +407,13 @@ export class DoctorDashboardComponent implements OnInit {
   showNotifications(): void {
     console.log('Showing notifications...');
   }
+
+  setActiveSection(section: string): void {
+    this.activeSection = section;
+    if (section === 'dashboard') {
+      this.router.navigate(['/dashboard/doctor']);
+    } else {
+      this.router.navigate([`/dashboard/doctor/${section}`]);
+    }
+  }
 }

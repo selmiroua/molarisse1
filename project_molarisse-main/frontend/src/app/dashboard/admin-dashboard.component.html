@@ -31,65 +31,45 @@
   <div class="main-content">
     <!-- Header -->
     <header class="dashboard-header">
-      <button class="menu-toggle" (click)="toggleMenu()">
-        <mat-icon>menu</mat-icon>
-      </button>
+      <div class="header-left">
+        <button class="menu-toggle" (click)="toggleMenu()">
+          <mat-icon>menu</mat-icon>
+        </button>
 
-      <div class="brand">
-        <img src="/assets/images/logo.png" alt="Molarisse Logo" class="brand-logo">
+        <div class="search-bar">
+          <mat-icon class="search-icon">search</mat-icon>
+          <input type="text" class="search-input" placeholder="Rechercher..." [(ngModel)]="searchQuery" (input)="onSearch($event)">
+        </div>
       </div>
 
-      <div class="search-bar">
-        <mat-icon>search</mat-icon>
-        <input type="text" placeholder="Rechercher..." [(ngModel)]="searchQuery" (input)="onSearch($event)">
-      </div>
-
-      <div class="header-actions">
+      <div class="header-right">
         <button class="notification-btn" (click)="toggleNotifications()">
           <mat-icon [matBadge]="notificationCount" [matBadgeHidden]="notificationCount === 0">notifications</mat-icon>
         </button>
 
-        <div class="profile-section" #profileDropdown>
-          <div class="profile-info" (click)="toggleProfileDropdown()">
-            <div class="profile-image-wrapper">
-              <img [src]="currentUser?.profileImage || '/assets/images/default-avatar.png'" 
-                   [alt]="currentUser?.firstName + ' ' + currentUser?.lastName"
-                   (error)="handleImageError($event)">
-            </div>
-            <div class="user-details">
-              <span class="user-name">{{ currentUser?.firstName }} {{ currentUser?.lastName }}</span>
-              <span class="user-role">{{ currentUser?.role }}</span>
-            </div>
-            <mat-icon>keyboard_arrow_down</mat-icon>
+        <div class="user-profile" (click)="toggleProfileDropdown()">
+          <img [src]="currentUser?.profileImage || '/assets/images/default-avatar.png'" 
+               alt="Profile" 
+               class="profile-image" 
+               (error)="handleImageError($event)">
+          <div class="user-info">
+            <span class="user-name">{{ currentUser?.firstName }} {{ currentUser?.lastName }}</span>
+            <span class="user-role">Admin</span>
           </div>
-
-          <div class="profile-dropdown" *ngIf="isProfileDropdownOpen">
-            <div class="dropdown-header">
-              <div class="profile-image-wrapper">
-                <img [src]="currentUser?.profileImage || '/assets/images/default-avatar.png'" 
-                     [alt]="currentUser?.firstName + ' ' + currentUser?.lastName"
-                     (error)="handleImageError($event)">
-              </div>
-              <div class="user-info">
-                <span class="name">{{ currentUser?.firstName }} {{ currentUser?.lastName }}</span>
-                <span class="email">{{ currentUser?.email }}</span>
-              </div>
-            </div>
-            <mat-divider></mat-divider>
-            <div class="dropdown-actions">
-              <button mat-button (click)="showProfile()">
-                <mat-icon>person</mat-icon>
-                <span>Mon Profil</span>
-              </button>
-              <button mat-button (click)="showSettings()">
-                <mat-icon>settings</mat-icon>
-                <span>Paramètres</span>
-              </button>
-              <button mat-button (click)="logout()">
-                <mat-icon>logout</mat-icon>
-                <span>Déconnexion</span>
-              </button>
-            </div>
+          <mat-icon class="dropdown-icon" [class.open]="isProfileDropdownOpen">expand_more</mat-icon>
+          <div class="profile-dropdown" [class.show]="isProfileDropdownOpen">
+            <a (click)="showProfile()" class="dropdown-item">
+              <mat-icon>person</mat-icon>
+              <span>Mon Profil</span>
+            </a>
+            <a (click)="showSettings()" class="dropdown-item">
+              <mat-icon>settings</mat-icon>
+              <span>Paramètres</span>
+            </a>
+            <a (click)="logout()" class="dropdown-item logout">
+              <mat-icon>logout</mat-icon>
+              <span>Déconnexion</span>
+            </a>
           </div>
         </div>
       </div>
@@ -133,6 +113,64 @@
 
       <!-- Verifications View -->
       <div *ngIf="activeSection === 'verifications'" class="verifications-view">
+        <!-- Secretary Requests Section -->
+        <div class="secretary-requests-section">
+          <h2>Demandes des secrétaires</h2>
+
+          <!-- Loading spinner -->
+          <div class="loading-container" *ngIf="loading">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Chargement des demandes...</p>
+          </div>
+
+          <!-- Error message -->
+          <div class="error-container" *ngIf="error">
+            <mat-icon color="warn">error</mat-icon>
+            <p>{{ error }}</p>
+            <button mat-button color="primary" (click)="loadSecretaryRequests()">Réessayer</button>
+          </div>
+
+          <!-- No requests message -->
+          <div class="no-requests" *ngIf="!loading && !error && secretaryRequests.length === 0">
+            <mat-icon>info</mat-icon>
+            <p>Aucune demande en attente</p>
+          </div>
+
+          <!-- Requests list -->
+          <div class="requests-list" *ngIf="!loading && !error && secretaryRequests.length > 0">
+            <mat-card *ngFor="let request of secretaryRequests" class="request-card">
+              <mat-card-header>
+                <mat-card-title>{{ request.firstName }} {{ request.lastName }}</mat-card-title>
+                <mat-card-subtitle>{{ request.email }}</mat-card-subtitle>
+              </mat-card-header>
+              
+              <mat-card-content>
+                <p><strong>Date de demande:</strong> {{ request.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+                <p><strong>Statut:</strong> 
+                  <span [ngClass]="{'status-pending': request.status === 'PENDING',
+                                   'status-approved': request.status === 'APPROVED',
+                                   'status-rejected': request.status === 'REJECTED'}">
+                    {{ request.status === 'PENDING' ? 'En attente' :
+                       request.status === 'APPROVED' ? 'Approuvée' : 'Rejetée' }}
+                  </span>
+                </p>
+              </mat-card-content>
+
+              <mat-card-actions *ngIf="request.status === 'PENDING'">
+                <button mat-raised-button color="primary" (click)="approveSecretaryRequest(request.id)">
+                  <mat-icon>check</mat-icon>
+                  Approuver
+                </button>
+                <button mat-raised-button color="warn" (click)="rejectSecretaryRequest(request.id)">
+                  <mat-icon>close</mat-icon>
+                  Rejeter
+                </button>
+              </mat-card-actions>
+            </mat-card>
+          </div>
+        </div>
+
+        <!-- Doctor Verifications Section -->
         <app-doctor-verifications-admin></app-doctor-verifications-admin>
       </div>
 

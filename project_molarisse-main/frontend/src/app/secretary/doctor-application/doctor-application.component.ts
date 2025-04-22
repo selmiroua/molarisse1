@@ -501,11 +501,14 @@ export class DoctorApplicationComponent implements OnInit {
       selectedDoctor: this.selectedDoctor
     });
     
-    this.applicationService.submitApplication(
-      doctorId, 
-      message, 
-      this.selectedFile || undefined
-    )
+    const formData = new FormData();
+    formData.append('doctorId', doctorId.toString());
+    formData.append('message', message);
+    if (this.selectedFile) {
+      formData.append('cvFile', this.selectedFile);
+    }
+    
+    this.applicationService.submitApplication(formData)
       .pipe(finalize(() => this.submitting = false))
       .subscribe({
         next: (response: DoctorApplication) => {

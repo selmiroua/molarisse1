@@ -73,13 +73,18 @@ export class AuthService {
     );
   }
 
-  logout(): Observable<void> {
-    this.userRole = null;
+  logout(): void {
+    // Clear client-side storage
     if (isPlatformBrowser(this.platformId)) {
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('access_token');
+      localStorage.clear();
+      sessionStorage.clear();
+      this.userRole = null;
     }
-    return this.http.post<void>(`${this.apiUrl}/logout`, {});
+
+    // Notify server in the background with correct API path
+    this.http.post<void>(`${this.apiUrl}/api/v1/auth/logout`, {}).subscribe({
+      error: (error) => console.error('Error notifying server of logout:', error)
+    });
   }
 
   getUserRole(): string | null {

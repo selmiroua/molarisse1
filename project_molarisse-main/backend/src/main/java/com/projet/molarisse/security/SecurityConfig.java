@@ -60,7 +60,9 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                             "/api/v1/swagger-ui.html"
                     ).permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/appointments/book").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/api/appointments/patient").hasRole("PATIENT")
                     .requestMatchers(HttpMethod.GET, "/api/appointments/patient/**").hasRole("PATIENT")
+                    .requestMatchers(HttpMethod.PUT, "/api/appointments/{appointmentId}").hasAnyRole("PATIENT", "DOCTOR", "SECRETAIRE")
                     .requestMatchers(HttpMethod.GET, "/api/appointments/doctor/{doctorId}/appointments").hasAnyRole("PATIENT", "DOCTOR", "SECRETAIRE")
                     .requestMatchers(HttpMethod.GET, "/api/appointments/doctor/**").hasRole("DOCTOR")
                     .requestMatchers(HttpMethod.GET, "/api/appointments/my-doctor-appointments").hasRole("DOCTOR")
