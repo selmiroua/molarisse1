@@ -3,7 +3,11 @@
   <nav class="side-nav" [class.collapsed]="!isMenuOpen">
     <div class="logo-section">
       <div class="logo">
-        <span class="logo-text">Molarisse</span>
+        <div class="logo-img-container">
+          <img src="assets/images/molarisse.png" alt="Tooth Logo" class="tooth-logo">
+          <div class="shine-effect"></div>
+        </div>
+        <span class="logo-text"></span>
         <span class="role-text">Médecin</span>
       </div>
     </div>
@@ -44,11 +48,13 @@
         <span>Calendrier</span>
       </a>
 
-      <a class="nav-link" (click)="showSecretaryRequests()" [class.active]="activeSection === 'secretary-requests'" matTooltip="Vérifications des médecins">
+      
+
+      <a class="nav-link" (click)="showUnassignedSecretaries()" [class.active]="activeSection === 'unassigned-secretaries'" matTooltip="Secrétaires disponibles">
         <div class="nav-icon">
-          <i class="fas fa-user-md"></i>
+          <i class="fas fa-user-plus"></i>
         </div>
-        <span>Vérifications</span>
+        <span>Secrétaires disponibles</span>
       </a>
     </div>
   </nav>
@@ -62,8 +68,8 @@
           <mat-icon>{{ isMenuOpen ? 'menu_open' : 'menu' }}</mat-icon>
         </button>
         <div class="brand">
-          <img src="assets/images/logo.png" alt="Molarisse" class="brand-logo">
-          <span class="brand-name">Molarisse</span>
+          <img src="assets/images/molarisse.png" alt="Molarisse" class="brand-logo">
+          <span class="brand-name">Molaris</span>
         </div>
         <div class="search-bar">
           <mat-icon class="search-icon">search</mat-icon>
@@ -76,6 +82,9 @@
         </button>
         <div class="notifications">
           <app-notification-bell></app-notification-bell>
+        </div>
+        <div class="staff-button" (click)="showMyStaff()" matTooltip="Mon équipe">
+          <mat-icon>people</mat-icon>
         </div>
         <div class="user-profile" (click)="toggleProfileDropdown()">
           <img [src]="profileImage" 
@@ -184,6 +193,16 @@
       <!-- Secretary Requests View -->
       <div *ngIf="activeSection === 'secretary-requests'">
         <app-secretary-requests></app-secretary-requests>
+      </div>
+
+      <!-- Unassigned Secretaries View -->
+      <div *ngIf="activeSection === 'unassigned-secretaries'">
+        <app-unassigned-secretaries></app-unassigned-secretaries>
+      </div>
+
+      <!-- My Staff View -->
+      <div *ngIf="activeSection === 'my-staff'">
+        <app-assigned-secretaries></app-assigned-secretaries>
       </div>
 
       <!-- Settings View -->

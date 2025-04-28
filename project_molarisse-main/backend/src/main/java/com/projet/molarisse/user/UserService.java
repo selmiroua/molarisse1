@@ -119,8 +119,8 @@ public class UserService {
             fileStorageService.deleteFile(user.getProfilePicturePath());
         }
 
-        // Store new profile picture
-        String fileName = fileStorageService.storeFile(file);
+        // Store new profile picture in the profile-pictures subdirectory
+        String fileName = fileStorageService.storeFile(file, "profile-pictures");
         user.setProfilePicturePath(fileName);
 
         return userRepository.save(user);
@@ -213,7 +213,8 @@ public class UserService {
                 fileStorageService.deleteFile(secretary.getCvFilePath());
             }
             
-            String fileName = fileStorageService.storeFile(cvFile);
+            // Store CV file in the 'cvs' subdirectory
+            String fileName = fileStorageService.storeFile(cvFile, "cvs");
             secretary.setCvFilePath(fileName);
         }
         
@@ -341,5 +342,87 @@ public class UserService {
                 
         return userRepository.findByIdAndRole(id, doctorRole)
                 .orElseThrow(() -> new EntityNotFoundException("Doctor not found with id: " + id));
+    }
+    
+    /**
+     * Assign a secretary directly to a doctor
+     * 
+     * @param authentication the current authenticated user (must be a doctor)
+     * @param secretaryId the ID of the secretary to assign
+     * @return the updated secretary user
+     */
+    @Transactional
+    public User assignSecretaryToDoctor(Authentication authentication, Integer secretaryId) {
+        User doctor = getCurrentUser(authentication);
+        
+        // Verify user is a doctor
+        if (!doctor.getRole().getNom().equalsIgnoreCase("doctor")) {
+            throw new IllegalArgumentException("Only doctors can assign secretaries");
+        }
+        
+        // Find the secretary
+        User secretary = userRepository.findById(secretaryId)
+                .orElseThrow(() -> new EntityNotFoundException("Secretary not found"));
+        
+        // Verify secretary has secretary role
+        if (!secretary.getRole().getNom().equalsIgnoreCase("secretaire")) {
+            throw new IllegalArgumentException("Selected user is not a secretary");
+        }
+        
+        // Check if secretary is already assigned to a doctor
+        if (secretary.getAssignedDoctor() != null && secretary.getSecretaryStatus() == SecretaryStatus.APPROVED) {
+            throw new IllegalArgumentException("This secretary is already assigned to a doctor");
+        }
+        
+        // Assign secretary to doctor
+        secretary.setAssignedDoctor(doctor);
+        secretary.setSecretaryStatus(SecretaryStatus.APPROVED);
+        
+        // Create notification for the secretary
+        String message = "Doctor " + doctor.fullname() + " has assigned you as their secretary";
+        String link = "/secretary/dashboard";
+        notificationService.createNotification(secretary, message, NotificationType.SECRETARY_APPLICATION_RESPONSE, link);
+        
+        return userRepository.save(secretary);
+    }
+
+    @Transactional
+    public User updateCV(Authentication authentication, MultipartFile cvFile) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        
+        // Verify user is a secretary
+        if (!user.getRole().getNom().equalsIgnoreCase("secretaire")) {
+            throw new IllegalArgumentException("Only users with secretary role can upload a CV");
+        }
+        
+        // Delete old CV if exists
+        if (user.getCvFilePath() != null) {
+            fileStorageService.deleteFile(user.getCvFilePath());
+        }
+        
+        // Store new CV file in the 'cvs' subdirectory
+        String fileName = fileStorageService.storeFile(cvFile, "cvs");
+        user.setCvFilePath(fileName);
+        
+        return userRepository.save(user);
+    }
+    
+    /**
+     * Helper method to ensure CV path has the correct prefix
+     * This handles legacy paths that may not include the subdirectory
+     */
+    public String getNormalizedCVPath(String cvPath) {
+        if (cvPath == null) {
+            return null;
+        }
+        
+        // If path already contains a directory separator, assume it's correctly formatted
+        if (cvPath.contains("/")) {
+            return cvPath;
+        }
+        
+        // Otherwise, add the cvs/ prefix
+        return "cvs/" + cvPath;
     }
 }

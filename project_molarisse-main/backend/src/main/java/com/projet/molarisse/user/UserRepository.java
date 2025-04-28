@@ -17,5 +17,10 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     List<User> findByAssignedDoctorIdAndSecretaryStatus(Integer doctorId, SecretaryStatus status);
 
     Optional<User> findByIdAndRole(Integer id, Role role);
+    
+    /**
+     * Find users by role where assignedDoctor is null (unassigned secretaries)
+     */
+    List<User> findByRoleAndAssignedDoctorIsNull(Role role);
 }
 

@@ -54,3 +54,10 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
     padding: 0;
   }
 }
+
+// Add custom styles for secretary dialog
+.secretary-detail-dialog .mat-mdc-dialog-container {
+  padding: 0 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}

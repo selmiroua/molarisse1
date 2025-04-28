@@ -34,11 +34,23 @@ public class JwtFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
-        logger.info("Request path: {}", request.getServletPath());
-        if(request.getServletPath().contains("/auth")) {
+        String path = request.getServletPath();
+        logger.info("Request path: {}", path);
+        
+        // Skip filter for auth endpoints
+        if(path.contains("/auth")) {
             filterChain.doFilter(request, response);
             return;
         }
+        
+        // Skip filter for CV file requests with token parameter
+        if((path.contains("/api/users/cv/") || path.contains("/api/v1/api/users/cv/")) && 
+           request.getParameter("token") != null) {
+            logger.info("CV request with token parameter detected, skipping JWT filter");
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
         try {
             final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
             logger.info("Authorization Header: {}", authHeader);

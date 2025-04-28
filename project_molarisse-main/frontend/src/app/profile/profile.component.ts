@@ -20,6 +20,7 @@ import { Router } from '@angular/router';
 import { HttpEventType } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { HttpClient } from '@angular/common/http';
+import { CvViewerDialogComponent } from '../shared/cv-viewer-dialog/cv-viewer-dialog.component';
 
 @Component({
   selector: 'app-profile',
@@ -57,6 +58,12 @@ export class ProfileComponent implements OnInit {
   profileUpdateSubmitted = false;
   passwordChangeSuccess = false;
   environment = environment;
+  selectedCVFile?: File;
+  cvFileName?: string;
+  cvUploadProgress = 0;
+  isSecretary = false;
+  userRole = '';
+  apiUrl = environment.apiUrl;
 
   constructor(
     private fb: FormBuilder,
@@ -64,12 +71,18 @@ export class ProfileComponent implements OnInit {
     private authService: AuthService,
     private snackBar: MatSnackBar,
     private router: Router,
-    private http: HttpClient
+    private http: HttpClient,
+    private dialog: MatDialog
   ) {
     if (!this.authService.isAuthenticated()) {
       this.router.navigate(['/login']);
       return;
     }
+
+    // Check if the user is a secretary
+    const role = this.authService.getUserRole();
+    this.userRole = role || '';
+    this.isSecretary = role?.toLowerCase() === 'secretaire';
   }
 
   ngOnInit(): void {
@@ -302,7 +315,12 @@ export class ProfileComponent implements OnInit {
       try {
         // Add a timestamp to prevent caching
         const timestamp = new Date().getTime();
-        const url = `${environment.apiUrl}/api/v1/api/users/profile/picture/${profilePicturePath}?t=${timestamp}`;
+        // Ensure path is properly formatted with profile-pictures/ prefix if not already included
+        const path = profilePicturePath.includes('/') ? 
+          profilePicturePath : 
+          `profile-pictures/${profilePicturePath}`;
+        
+        const url = `${environment.apiUrl}/api/v1/api/users/profile/picture/${path}?t=${timestamp}`;
         console.log('Profile picture URL:', url);
         return url;
       } catch (error) {
@@ -326,5 +344,67 @@ export class ProfileComponent implements OnInit {
         console.error('Backend connection failed:', error);
       }
     });
+  }
+
+  onCVFileSelected(event: any): void {
+    const file = event.target.files[0];
+    if (file) {
+      this.selectedCVFile = file;
+      this.cvFileName = file.name;
+      
+      // File validation
+      if (file.size > 10000000) { // 10MB limit
+        this.snackBar.open('Le fichier ne doit pas dépasser 10MB', 'Fermer', { duration: 3000 });
+        this.selectedCVFile = undefined;
+        this.cvFileName = undefined;
+        return;
+      }
+      
+      if (!file.type.match(/application\/(pdf|msword|vnd.openxmlformats-officedocument.wordprocessingml.document)$/)) {
+        this.snackBar.open('Format de fichier invalide. Veuillez télécharger un fichier PDF ou DOC/DOCX.', 'Fermer', { duration: 3000 });
+        this.selectedCVFile = undefined;
+        this.cvFileName = undefined;
+        return;
+      }
+    }
+  }
+
+  uploadCV(): void {
+    if (!this.selectedCVFile) return;
+
+    this.profileService.uploadCV(this.selectedCVFile).subscribe({
+      next: (event: any) => {
+        if (event.type === HttpEventType.UploadProgress) {
+          this.cvUploadProgress = Math.round(100 * event.loaded / event.total);
+        } else if (event.type === HttpEventType.Response) {
+          this.snackBar.open('CV mis à jour avec succès', 'Fermer', { duration: 3000 });
+          this.cvUploadProgress = 0;
+          
+          // Update the user profile to get the new CV path
+          this.loadProfile();
+          
+          // Clear the selected file
+          this.selectedCVFile = undefined;
+          this.cvFileName = undefined;
+        }
+      },
+      error: (error) => {
+        console.error('Error uploading CV:', error);
+        this.snackBar.open('Une erreur est survenue lors du téléchargement du CV', 'Fermer', { duration: 3000 });
+        this.cvUploadProgress = 0;
+      }
+    });
+  }
+
+  viewCV(): void {
+    if (this.userProfile?.cvFilePath) {
+      this.dialog.open(CvViewerDialogComponent, {
+        width: '800px',
+        height: '700px',
+        data: {
+          cvFilePath: this.userProfile.cvFilePath
+        }
+      });
+    }
   }
 }

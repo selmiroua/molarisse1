@@ -22,6 +22,8 @@ import { DoctorVerificationService } from '../core/services/doctor-verification.
 import { jwtDecode } from 'jwt-decode';
 import { NotificationService } from '../core/services/notification.service';
 import { SecretaryRequestsComponent } from '../doctor/secretary-requests/secretary-requests.component';
+import { UnassignedSecretariesComponent } from '../doctor/unassigned-secretaries/unassigned-secretaries.component';
+import { AssignedSecretariesComponent } from '../doctor/assigned-secretaries/assigned-secretaries.component';
 import { AppointmentService } from '../core/services/appointment.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { DoctorVerification } from '../core/models/doctor-verification.model';
@@ -71,7 +73,9 @@ interface DecodedToken {
     AppointmentCalendarComponent,
     SecretaryApplicationsComponent,
     DoctorVerificationComponent,
-    SecretaryRequestsComponent
+    SecretaryRequestsComponent,
+    UnassignedSecretariesComponent,
+    AssignedSecretariesComponent
   ],
   templateUrl: './doctor-dashboard.component.html',
   styleUrls: ['./doctor-dashboard.component.scss']
@@ -347,6 +351,10 @@ export class DoctorDashboardComponent implements OnInit {
         return 'Calendrier';
       case 'secretary-requests':
         return 'Vérifications des médecins';
+      case 'unassigned-secretaries':
+        return 'Secrétaires disponibles';
+      case 'my-staff':
+        return 'Mon équipe';
       default:
         return 'Tableau de bord';
     }
@@ -354,6 +362,14 @@ export class DoctorDashboardComponent implements OnInit {
 
   showSecretaryRequests(): void {
     this.activeSection = 'secretary-requests';
+  }
+
+  showUnassignedSecretaries() {
+    this.activeSection = 'unassigned-secretaries';
+  }
+
+  showMyStaff() {
+    this.activeSection = 'my-staff';
   }
 
   showSettings(): void {

@@ -59,7 +59,7 @@ export class SecretaryProfileDialogComponent {
     }
   }
 
-  openCVInNewTab(): void {
+  viewCV(): void {
     if (this.data.hasCV && this.data.application.cvFilePath) {
       const cvUrl = `/api/v1/users/cv/${this.data.application.cvFilePath}`;
       window.open(cvUrl, '_blank');

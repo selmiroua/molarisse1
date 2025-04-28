@@ -7,6 +7,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { SecretaryService } from '../../core/services/secretary.service';
 import { environment } from '../../../environments/environment';
+import { CvViewerDialogComponent } from '../../shared/cv-viewer-dialog/cv-viewer-dialog.component';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-secretary-requests',
@@ -16,7 +18,8 @@ import { environment } from '../../../environments/environment';
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatDialogModule
+    MatDialogModule,
+    MatSnackBarModule
   ],
   template: `
     <div class="secretary-requests">
@@ -282,8 +285,15 @@ export class SecretaryRequestsComponent implements OnInit {
   }
 
   viewCV(fileName: string): void {
-    const cvUrl = `${environment.apiUrl}/api/v1/api/users/cv/${fileName}`;
-    window.open(cvUrl, '_blank');
+    if (fileName) {
+      this.dialog.open(CvViewerDialogComponent, {
+        width: '800px',
+        height: '700px',
+        data: {
+          cvFilePath: fileName
+        }
+      });
+    }
   }
 
   approveRequest(requestId: number): void {

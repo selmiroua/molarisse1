@@ -164,6 +164,62 @@
           </form>
         </div>
 
+        <mat-divider class="section-divider" *ngIf="isSecretary"></mat-divider>
+
+        <!-- CV Upload Section for Secretaries -->
+        <div class="edit-form cv-form" *ngIf="isSecretary">
+          <h3>Votre CV</h3>
+          
+          <div class="cv-upload-container">
+            <p class="cv-info">Téléchargez votre CV pour améliorer vos chances d'être recruté par un médecin. Les formats acceptés sont PDF, DOC et DOCX.</p>
+            
+            <div class="cv-current-info" *ngIf="userProfile?.cvFilePath">
+              <mat-icon>description</mat-icon>
+              <span>CV actuel disponible</span>
+              <button mat-stroked-button color="primary" (click)="viewCV()">
+                <mat-icon>visibility</mat-icon> Voir le CV
+              </button>
+            </div>
+            
+            <div class="cv-upload-controls">
+              <input type="file" 
+                     #cvFileInput 
+                     accept=".pdf,.doc,.docx" 
+                     (change)="onCVFileSelected($event)" 
+                     style="display: none">
+              
+              <div class="cv-buttons">
+                <button type="button" 
+                        mat-stroked-button 
+                        color="primary"
+                        (click)="cvFileInput.click()">
+                  <mat-icon>attach_file</mat-icon>
+                  Choisir un CV
+                </button>
+                
+                <button type="button" 
+                        mat-raised-button 
+                        color="primary" 
+                        [disabled]="!selectedCVFile || cvUploadProgress > 0"
+                        (click)="uploadCV()">
+                  <mat-icon>upload</mat-icon>
+                  Télécharger le CV
+                </button>
+              </div>
+              
+              <div class="selected-file" *ngIf="cvFileName">
+                <mat-icon>description</mat-icon>
+                <span>{{ cvFileName }}</span>
+                <button mat-icon-button color="warn" (click)="selectedCVFile = undefined; cvFileName = undefined">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            </div>
+            
+            <mat-progress-bar *ngIf="cvUploadProgress > 0" mode="determinate" [value]="cvUploadProgress"></mat-progress-bar>
+          </div>
+        </div>
+
         <div class="form-actions main-actions">
           <button type="button" 
                   mat-stroked-button 

@@ -19,6 +19,7 @@ import { User } from '../../core/models/user.model';
 import { finalize, tap, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { SecretaryProfileDialogComponent, SecretaryProfileData } from '../secretary-profile-dialog/secretary-profile-dialog.component';
+import { CvViewerDialogComponent } from '../../shared/cv-viewer-dialog/cv-viewer-dialog.component';
 
 // Add SecretaryStatus enum
 enum SecretaryStatus {
@@ -203,7 +204,13 @@ export class SecretaryApplicationsComponent implements OnInit {
   
   viewCV(application: DoctorApplication): void {
     if (application.cvFilePath) {
-      window.open(`/api/v1/users/cv/${application.cvFilePath}`, '_blank');
+      this.dialog.open(CvViewerDialogComponent, {
+        width: '800px',
+        height: '700px',
+        data: {
+          cvFilePath: application.cvFilePath
+        }
+      });
     } else {
       this.snackBar.open('Aucun CV n\'a été fourni pour cette candidature.', 'Fermer', {
         duration: 3000

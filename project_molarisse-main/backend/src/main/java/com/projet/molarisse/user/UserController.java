@@ -18,6 +18,10 @@ import java.util.Map;
 import com.projet.molarisse.dto.SecretaryApplicationRequest;
 import com.projet.molarisse.dto.SecretaryActionRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.projet.molarisse.role.RoleRepository;
+import com.projet.molarisse.role.Role;
+import com.projet.molarisse.user.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 
 @RestController
 @RequestMapping("/api/users")
@@ -26,6 +30,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 public class UserController {
     private final UserService userService;
     private final FileStorageService fileStorageService;
+    private final RoleRepository roleRepository;
+    private final UserRepository userRepository;
     
    
 
@@ -57,12 +63,21 @@ public class UserController {
     @GetMapping("/profile/picture/{fileName:.+}")
     public ResponseEntity<Resource> getProfilePicture(@PathVariable String fileName) {
         try {
+            // Log the requested filename for debugging
+            System.out.println("Requested profile picture: " + fileName);
+            
+            // If the fileName doesn't already include a subdirectory, add the profile-pictures prefix
+            if (!fileName.contains("/")) {
+                fileName = "profile-pictures/" + fileName;
+            }
+            
             Resource resource = fileStorageService.loadFileAsResource(fileName);
             return ResponseEntity.ok()
                     .contentType(MediaType.IMAGE_JPEG)
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
                     .body(resource);
         } catch (Exception e) {
+            System.err.println("Error loading profile picture: " + e.getMessage());
             return ResponseEntity.notFound().build();
         }
     }
@@ -113,14 +128,49 @@ public class UserController {
     }
     
     @GetMapping("/cv/{fileName:.+}")
-    public ResponseEntity<Resource> getCVFile(@PathVariable String fileName) {
+    public ResponseEntity<Resource> getCVFile(
+            @PathVariable String fileName,
+            @RequestParam(value = "token", required = false) String token) {
         try {
+            // Log the requested filename for debugging
+            System.out.println("Requested CV file: " + fileName);
+            
+            // Handle legacy paths - if fileName doesn't contain a subdirectory, add the cvs/ prefix
+            if (!fileName.contains("/")) {
+                System.out.println("Adding cvs/ prefix to legacy path");
+                fileName = "cvs/" + fileName;
+            }
+            
+            // Log the final file path we're trying to load
+            System.out.println("Attempting to load file from path: " + fileName);
+            
+            // Load the file from storage - this will throw an exception if the file doesn't exist
             Resource resource = fileStorageService.loadFileAsResource(fileName);
+            
+            // Log success
+            System.out.println("File loaded successfully: " + resource.getFilename());
+            
+            // Determine content type (default to PDF)
+            MediaType contentType = MediaType.APPLICATION_PDF;
+            if (fileName.toLowerCase().endsWith(".doc")) {
+                contentType = MediaType.parseMediaType("application/msword");
+            } else if (fileName.toLowerCase().endsWith(".docx")) {
+                contentType = MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+            }
+            
             return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_PDF)
+                    .contentType(contentType)
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+                    .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+                    .header(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, OPTIONS")
+                    .header(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "Content-Type, Authorization")
+                    .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                    .header(HttpHeaders.PRAGMA, "no-cache")
+                    .header(HttpHeaders.EXPIRES, "0")
                     .body(resource);
         } catch (Exception e) {
+            System.err.println("Error loading CV file: " + e.getMessage());
+            e.printStackTrace(); // Print full stack trace for debugging
             return ResponseEntity.notFound().build();
         }
     }
@@ -174,5 +224,43 @@ public class UserController {
     public ResponseEntity<User> getDoctorById(@PathVariable Integer id) {
         User doctor = userService.getDoctorById(id);
         return ResponseEntity.ok(doctor);
+    }
+
+    @GetMapping("/secretaries/unassigned")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<List<User>> getUnassignedSecretaries() {
+        // Get all secretaries who are not assigned to any doctor
+        Role secretaryRole = roleRepository.findByNom("secretaire")
+                .orElseThrow(() -> new EntityNotFoundException("Secretary role not found"));
+        
+        List<User> unassignedSecretaries = userRepository.findByRoleAndAssignedDoctorIsNull(secretaryRole);
+        return ResponseEntity.ok(unassignedSecretaries);
+    }
+    
+    @PostMapping("/doctor/assign-secretary/{secretaryId}")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<User> assignSecretaryToDoctor(
+            Authentication authentication,
+            @PathVariable Integer secretaryId
+    ) {
+        User secretary = userService.assignSecretaryToDoctor(authentication, secretaryId);
+        return ResponseEntity.ok(secretary);
+    }
+
+    @PostMapping("/upload-cv")
+    @PreAuthorize("hasRole('SECRETAIRE')")
+    public ResponseEntity<User> uploadCV(
+            Authentication authentication,
+            @RequestParam("file") MultipartFile cvFile
+    ) {
+        if (cvFile.isEmpty() || cvFile.getContentType() == null || 
+            (!cvFile.getContentType().startsWith("application/pdf") && 
+             !cvFile.getContentType().startsWith("application/msword") && 
+             !cvFile.getContentType().startsWith("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        User updatedUser = userService.updateCV(authentication, cvFile);
+        return ResponseEntity.ok(updatedUser);
     }
 }

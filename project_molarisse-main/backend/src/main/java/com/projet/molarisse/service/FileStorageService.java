@@ -85,17 +85,44 @@ public class FileStorageService {
         try {
             Path filePath = this.fileStorageLocation.resolve(fileName).normalize();
             System.out.println("Looking for file at: " + filePath.toAbsolutePath());
+            
+            // Check if the file exists
+            if (!Files.exists(filePath)) {
+                System.err.println("File not found: " + filePath.toAbsolutePath());
+                
+                // Check if the directory exists
+                Path parentDir = filePath.getParent();
+                if (Files.exists(parentDir)) {
+                    System.out.println("Directory exists: " + parentDir);
+                    System.out.println("Files in directory:");
+                    Files.list(parentDir).forEach(file -> System.out.println("  - " + file.getFileName()));
+                } else {
+                    System.err.println("Directory does not exist: " + parentDir);
+                }
+                
+                throw new RuntimeException("File not found " + fileName);
+            }
+            
+            // Check if the file is readable
+            if (!Files.isReadable(filePath)) {
+                System.err.println("File is not readable: " + filePath.toAbsolutePath());
+                throw new RuntimeException("File is not readable " + fileName);
+            }
+            
             Resource resource = new UrlResource(filePath.toUri());
-            if(resource.exists()) {
-                System.out.println("File found: " + filePath.toAbsolutePath());
+            if(resource.exists() && resource.isReadable()) {
+                System.out.println("File found and readable: " + filePath.toAbsolutePath());
                 return resource;
             } else {
-                System.err.println("File not found: " + filePath.toAbsolutePath());
-                throw new RuntimeException("File not found " + fileName);
+                System.err.println("File exists but is not readable as a resource: " + filePath.toAbsolutePath());
+                throw new RuntimeException("File not readable as resource " + fileName);
             }
         } catch (MalformedURLException ex) {
             System.err.println("Malformed URL: " + ex.getMessage());
             throw new RuntimeException("File not found " + fileName, ex);
+        } catch (IOException ex) {
+            System.err.println("IO Exception: " + ex.getMessage());
+            throw new RuntimeException("IO error accessing file " + fileName, ex);
         }
     }
 

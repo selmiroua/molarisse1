@@ -16,7 +16,7 @@ type SecretaryStatusResponse = {
   providedIn: 'root'
 })
 export class SecretaryService {
-  private apiUrl = `${environment.apiUrl}/api/v1/users`;
+  private apiUrl = `${environment.apiUrl}/api/v1/api/users`;
 
   constructor(private http: HttpClient) { }
 
@@ -29,6 +29,32 @@ export class SecretaryService {
       catchError(error => {
         console.error('Error fetching secretary requests:', error);
         return of([]);
+      })
+    );
+  }
+
+  /**
+   * Get unassigned secretaries
+   */
+  getUnassignedSecretaries(): Observable<User[]> {
+    return this.http.get<User[]>(`${this.apiUrl}/secretaries/unassigned`).pipe(
+      tap(secretaries => console.log('Fetched unassigned secretaries:', secretaries)),
+      catchError(error => {
+        console.error('Error fetching unassigned secretaries:', error);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Assign a secretary to the current doctor
+   */
+  assignSecretary(secretaryId: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/doctor/assign-secretary/${secretaryId}`, {}).pipe(
+      tap(response => console.log('Secretary assigned successfully:', response)),
+      catchError(error => {
+        console.error('Error assigning secretary:', error);
+        throw error;
       })
     );
   }

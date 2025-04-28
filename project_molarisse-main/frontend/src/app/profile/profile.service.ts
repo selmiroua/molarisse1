@@ -11,6 +11,7 @@ export interface UserProfile {
   address: string;
   phoneNumber: string;
   profilePicturePath: string;
+  cvFilePath?: string;
 }
 
 export interface PasswordChangeRequest {
@@ -78,5 +79,17 @@ export class ProfileService {
   changePassword(passwordData: PasswordChangeRequest): Observable<any> {
     const headers = this.getHeaders();
     return this.http.put(`${this.apiUrl}/password`, passwordData, { headers });
+  }
+
+  uploadCV(file: File): Observable<HttpEvent<any>> {
+    const headers = this.getMultipartHeaders();
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return this.http.post(`${this.apiUrl}/upload-cv`, formData, {
+      headers,
+      reportProgress: true,
+      observe: 'events'
+    });
   }
 }
