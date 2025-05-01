@@ -1,0 +1,308 @@
+<div class="profile-container">
+  <!-- Left Column -->
+  <div class="left-column">
+    <!-- Profile Picture Section -->
+    <mat-card class="info-card">
+      <mat-card-header>
+        <mat-card-title>Photo de Profil</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="profile-picture-container">
+          <img [src]="previewUrl || (apiUrl + '/api/v1/users/profile/picture/' + userProfile?.profilePicturePath) || 'assets/images/default-avatar.png'" 
+               alt="Profile Picture" 
+               class="profile-picture"
+               (error)="handleImageError($event)">
+          <div class="upload-controls">
+            <button mat-button (click)="triggerFileInput()">
+              <mat-icon>photo_camera</mat-icon>
+              Changer la photo
+            </button>
+            <input type="file" 
+                   #fileInput 
+                   style="display: none" 
+                   (change)="onFileSelected($event)"
+                   accept="image/*">
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Personal Information Section -->
+    <mat-card class="info-card">
+      <mat-card-header>
+        <mat-card-title>Informations Personnelles</mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
+          <!-- Name Row -->
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Prénom</mat-label>
+              <mat-icon matPrefix>person_outline</mat-icon>
+              <input matInput formControlName="prenom" placeholder="Votre prénom">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Nom</mat-label>
+              <mat-icon matPrefix>person_outline</mat-icon>
+              <input matInput formControlName="nom" placeholder="Votre nom">
+            </mat-form-field>
+          </div>
+
+          <!-- Age and Gender Row -->
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Âge</mat-label>
+              <mat-icon matPrefix>cake</mat-icon>
+              <input matInput type="number" formControlName="age" placeholder="Votre âge">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Genre</mat-label>
+              <mat-icon matPrefix>wc</mat-icon>
+              <mat-select formControlName="genre">
+                <mat-option value="F">Femme</mat-option>
+                <mat-option value="H">Homme</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <!-- Contact Row -->
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Email</mat-label>
+              <mat-icon matPrefix>email</mat-icon>
+              <input matInput formControlName="email" type="email" placeholder="Votre email">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Téléphone</mat-label>
+              <mat-icon matPrefix>phone</mat-icon>
+              <input matInput formControlName="telephone" placeholder="Votre numéro">
+            </mat-form-field>
+          </div>
+
+          <!-- Address and Location Row -->
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="address-field">
+              <mat-label>Adresse de résidence</mat-label>
+              <mat-icon matPrefix>home</mat-icon>
+              <input matInput formControlName="adresse" placeholder="Votre adresse">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" *ngIf="userRole === 'DOCTOR'">
+              <mat-label>Ville</mat-label>
+              <mat-icon matPrefix>location_city</mat-icon>
+              <input matInput formControlName="ville" placeholder="Votre ville">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" *ngIf="userRole !== 'DOCTOR'">
+              <mat-label>Profession</mat-label>
+              <mat-icon matPrefix>work</mat-icon>
+              <input matInput formControlName="profession" placeholder="Votre profession">
+            </mat-form-field>
+          </div>
+
+          <div class="form-actions">
+            <button mat-raised-button color="primary" type="submit" [disabled]="!profileForm.valid || loading">
+              <mat-icon>save</mat-icon>
+              Enregistrer les modifications
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Password Change Section -->
+    <mat-card class="info-card">
+      <mat-card-header>
+        <mat-card-title>Changer le Mot de Passe</mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="passwordForm" (ngSubmit)="onSubmitPassword()" class="password-form">
+          <mat-form-field appearance="outline">
+            <mat-label>Mot de Passe Actuel</mat-label>
+            <input matInput type="password" formControlName="currentPassword">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Nouveau Mot de Passe</mat-label>
+            <input matInput type="password" formControlName="newPassword">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Confirmer le Mot de Passe</mat-label>
+            <input matInput type="password" formControlName="confirmPassword">
+          </mat-form-field>
+
+          <div class="form-actions">
+            <button mat-raised-button color="primary" type="submit">
+              Changer le Mot de Passe
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+          
+  <!-- Right Column - Medical Information Only for Patients -->
+  <div class="right-column" *ngIf="userRole === 'PATIENT'">
+    <mat-card class="info-card medical-info">
+      <mat-card-header>
+        <mat-card-title>Informations Médicales</mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="profileForm" class="medical-form">
+          <!-- État Général -->
+          <div class="info-group">
+            <h3>État de Santé</h3>
+            <mat-form-field appearance="outline" class="medical-field">
+              <mat-label>État Général</mat-label>
+              <mat-icon matPrefix>medical_information</mat-icon>
+              <mat-select formControlName="etatGeneral">
+                <mat-option value="">Sélectionnez votre état</mat-option>
+                <mat-option value="excellent">Excellent</mat-option>
+                <mat-option value="good">Bon</mat-option>
+                <mat-option value="fair">Moyen</mat-option>
+                <mat-option value="poor">Mauvais</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="medical-field">
+              <mat-label>Antécédents Chirurgicaux</mat-label>
+              <mat-icon matPrefix>medical_services</mat-icon>
+              <textarea matInput formControlName="antecedentsChirurgicaux" rows="2" placeholder="Listez vos antécédents chirurgicaux"></textarea>
+              <mat-hint *ngIf="!profileForm.get('antecedentsChirurgicaux')?.value" class="hint-message">
+                <mat-icon>info</mat-icon>
+                <span>Aucun antécédent chirurgical signalé. Vous pouvez modifier votre profil pour ajouter des antécédents si nécessaire.</span>
+              </mat-hint>
+            </mat-form-field>
+          </div>
+
+          <!-- Allergies Section -->
+          <div class="info-group">
+            <h3>Allergies</h3>
+            <div class="allergies-section">
+              <div class="allergies-display" *ngIf="getAllergies().length > 0">
+                <mat-chip-set>
+                  <mat-chip *ngFor="let allergie of getAllergies()" color="accent" [removable]="true" (removed)="removeAllergy(allergie)">
+                    {{allergie}}
+                    <mat-icon matChipRemove>cancel</mat-icon>
+                  </mat-chip>
+                </mat-chip-set>
+              </div>
+              <div class="empty-field-message" *ngIf="getAllergies().length === 0">
+                <mat-icon>info</mat-icon>
+                <span>Aucune allergie n'a été signalée.</span>
+              </div>
+              <div class="add-allergy-section">
+                <form (ngSubmit)="addAllergy(allergyInput.value); allergyInput.value=''" #allergyForm="ngForm">
+                  <mat-form-field appearance="outline" class="allergy-input">
+                    <mat-label>Ajouter une allergie</mat-label>
+                    <input matInput #allergyInput placeholder="Saisissez une allergie">
+                    <button mat-icon-button matSuffix type="submit" 
+                            [disabled]="!allergyInput.value"
+                            [class.active]="allergyInput.value">
+                      <mat-icon>add_circle</mat-icon>
+                    </button>
+                  </mat-form-field>
+                </form>
+                <div class="common-allergies">
+                  <p class="suggestions-label">Suggestions :</p>
+                  <mat-chip-set>
+                    <mat-chip *ngFor="let allergie of commonAllergies"
+                             (click)="addAllergy(allergie)"
+                             [disabled]="isAllergyPresent(allergie)"
+                             class="suggestion-chip">
+                      {{allergie}}
+                    </mat-chip>
+                  </mat-chip-set>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Medication Section -->
+          <div class="info-group">
+            <h3>Prise Médicamenteuse</h3>
+            <mat-form-field appearance="outline" class="medical-field">
+              <mat-label>Détails des médicaments</mat-label>
+              <mat-icon matPrefix>medication</mat-icon>
+              <textarea matInput formControlName="medicationDetails" rows="2" placeholder="Détaillez vos médicaments actuels"></textarea>
+              <mat-hint *ngIf="!profileForm.get('medicationDetails')?.value" class="hint-message">
+                <mat-icon>info</mat-icon>
+                <span>Aucune prise médicamenteuse signalée. Vous pouvez modifier votre profil si votre situation change.</span>
+              </mat-hint>
+            </mat-form-field>
+          </div>
+            
+          <!-- Documents Section -->
+          <div class="info-group">
+            <h3>Documents & Radiographies</h3>
+            <div class="file-upload-container">
+              <div class="file-upload-box" (click)="fileInput.click()" (dragover)="$event.preventDefault()" (drop)="onFileDrop($event)">
+                <input #fileInput type="file" hidden (change)="onFileSelected($event)" multiple accept="image/*,.pdf">
+                <mat-icon>cloud_upload</mat-icon>
+                <p>Cliquez ou glissez vos fichiers ici</p>
+                <span class="file-types">Images, radiographies, PDF (Max 10MB)</span>
+              </div>
+              
+              <!-- Display existing documents -->
+              <div class="existing-documents" *ngIf="fichePatient?.documentPath">
+                <h4>Document actuel</h4>
+                <mat-list>
+                  <mat-list-item class="document-item">
+                    <mat-icon matListItemIcon>description</mat-icon>
+                    <span matListItemTitle>{{fichePatient?.documentName}}</span>
+                    <div matListItemMeta>
+                      <button mat-icon-button color="primary" (click)="viewDocument(fichePatient!)" matTooltip="Voir le document">
+                        <mat-icon>visibility</mat-icon>
+                      </button>
+                      <button mat-icon-button color="warn" (click)="deleteDocument(fichePatient!)" matTooltip="Supprimer">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+                  </mat-list-item>
+                </mat-list>
+              </div>
+              
+              <!-- Files to be uploaded -->
+              <div class="uploaded-files" *ngIf="uploadedFiles.length > 0">
+                <h4>Fichiers à télécharger ({{uploadedFiles.length}})</h4>
+                <mat-list>
+                  <mat-list-item *ngFor="let file of uploadedFiles; let i = index" class="file-item">
+                    <mat-icon matListItemIcon>insert_drive_file</mat-icon>
+                    <span matListItemTitle>{{file.name}}</span>
+                    <button mat-icon-button color="warn" matListItemMeta (click)="removeFile(i)">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </mat-list-item>
+                </mat-list>
+                <div class="upload-actions">
+                  <button mat-raised-button color="primary" (click)="uploadFiles()" [disabled]="uploadedFiles.length === 0">
+                    <mat-icon>upload</mat-icon>
+                    Télécharger les fichiers
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button mat-raised-button color="primary" type="button" (click)="onSubmit()">
+              Enregistrer les modifications
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
+
+<!-- Loading Spinner -->
+<div class="loading-overlay" *ngIf="loading">
+  <mat-spinner></mat-spinner>
+</div>

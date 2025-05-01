@@ -1,0 +1,214 @@
+<div class="verification-container">
+  <h2 class="section-title">Vérification de votre compte médecin</h2>
+  
+  <!-- Loading spinner -->
+  <div class="loading-spinner" *ngIf="loading">
+    <mat-spinner diameter="50"></mat-spinner>
+  </div>
+
+  <!-- Verification status messages -->
+  <ng-container *ngIf="!loading">
+    <div class="verification-status pending fade-in" *ngIf="verificationStatus === VerificationStatus.PENDING">
+      <div class="status-icon">
+        <mat-icon>pending</mat-icon>
+      </div>
+      <h2>Votre demande est en cours d'examen</h2>
+      <p>Nous examinons actuellement vos documents. Ce processus peut prendre de 24 à 48 heures. Vous recevrez une notification par email lorsque votre demande aura été traitée.</p>
+      <div class="status-details">
+        <span class="status-chip pending">En attente de vérification</span>
+      </div>
+    </div>
+
+    <div class="verification-status approved fade-in" *ngIf="verificationStatus === VerificationStatus.APPROVED">
+      <div class="status-icon">
+        <mat-icon>check_circle</mat-icon>
+      </div>
+      <h2>Votre compte est vérifié</h2>
+      <p>Félicitations ! Votre compte a été vérifié avec succès. Vous pouvez maintenant accéder à toutes les fonctionnalités de la plateforme.</p>
+      <div class="status-details">
+        <span class="status-chip approved">Compte vérifié</span>
+      </div>
+    </div>
+
+    <div class="verification-status rejected fade-in" *ngIf="verificationStatus === VerificationStatus.REJECTED">
+      <div class="status-icon">
+        <mat-icon>error</mat-icon>
+      </div>
+      <h2>Votre demande a été rejetée</h2>
+      <p>Malheureusement, votre demande de vérification a été rejetée. Vous pouvez soumettre une nouvelle demande avec les informations correctes.</p>
+      <div class="rejection-reason" *ngIf="rejectionReason">
+        <strong>Motif du rejet :</strong> {{ rejectionReason }}
+      </div>
+      <div class="status-details">
+        <span class="status-chip rejected">Demande rejetée</span>
+      </div>
+    </div>
+
+    <!-- Verification Form -->
+    <div class="verification-form fade-in" *ngIf="verificationStatus !== VerificationStatus.APPROVED && verificationStatus !== VerificationStatus.PENDING">
+      <p class="required-field-indicator">Les champs marqués d'un <span>*</span> sont obligatoires</p>
+
+      <form [formGroup]="verificationForm" (ngSubmit)="onSubmit()">
+        <h3 class="section-title">Informations du cabinet</h3>
+        
+        <div class="form-field">
+          <mat-form-field appearance="outline">
+            <mat-label>Nom du cabinet *</mat-label>
+            <input matInput formControlName="cabinetName" placeholder="Votre cabinet médical">
+            <mat-error *ngIf="verificationForm.get('cabinetName')?.invalid && verificationForm.get('cabinetName')?.touched">
+              Le nom du cabinet est obligatoire
+            </mat-error>
+          </mat-form-field>
+        </div>
+        
+        <div class="form-field">
+          <mat-form-field appearance="outline">
+            <mat-label>Adresse *</mat-label>
+            <input matInput formControlName="address" placeholder="123 rue Exemple">
+            <mat-error *ngIf="verificationForm.get('address')?.invalid && verificationForm.get('address')?.touched">
+              L'adresse est obligatoire
+            </mat-error>
+          </mat-form-field>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <mat-form-field appearance="outline">
+              <mat-label>Ville *</mat-label>
+              <input matInput formControlName="city" placeholder="Ville">
+              <mat-error *ngIf="verificationForm.get('city')?.invalid && verificationForm.get('city')?.touched">
+                La ville est obligatoire
+              </mat-error>
+            </mat-form-field>
+          </div>
+          
+          <div class="form-field">
+            <mat-form-field appearance="outline">
+              <mat-label>Code postal *</mat-label>
+              <input matInput formControlName="postalCode" placeholder="12345">
+              <mat-error *ngIf="verificationForm.get('postalCode')?.invalid && verificationForm.get('postalCode')?.touched">
+                Le code postal est obligatoire
+              </mat-error>
+            </mat-form-field>
+          </div>
+        </div>
+        
+        <h3 class="section-title">Informations professionnelles</h3>
+        
+        <div class="form-row">
+          <div class="form-field">
+            <mat-form-field appearance="outline">
+              <mat-label>Spécialité *</mat-label>
+              <mat-select formControlName="specialty">
+                <mat-option *ngFor="let specialty of specialties" [value]="specialty">
+                  {{ specialty }}
+                </mat-option>
+              </mat-select>
+              <mat-error *ngIf="verificationForm.get('specialty')?.invalid && verificationForm.get('specialty')?.touched">
+                La spécialité est obligatoire
+              </mat-error>
+            </mat-form-field>
+          </div>
+          
+          <div class="form-field">
+            <mat-form-field appearance="outline">
+              <mat-label>Années d'expérience *</mat-label>
+              <input matInput type="number" formControlName="yearsOfExperience" min="0" max="70">
+              <mat-error *ngIf="verificationForm.get('yearsOfExperience')?.invalid && verificationForm.get('yearsOfExperience')?.touched">
+                Les années d'expérience sont obligatoires
+              </mat-error>
+            </mat-form-field>
+          </div>
+        </div>
+        
+        <div class="form-field">
+          <mat-form-field appearance="outline">
+            <mat-label>Email professionnel *</mat-label>
+            <input matInput formControlName="email" placeholder="exemple@cabinet.fr" type="email">
+            <mat-error *ngIf="verificationForm.get('email')?.invalid && verificationForm.get('email')?.touched">
+              Veuillez saisir une adresse email valide
+            </mat-error>
+          </mat-form-field>
+        </div>
+        
+        <div class="form-field">
+          <mat-form-field appearance="outline">
+            <mat-label>Téléphone *</mat-label>
+            <input matInput formControlName="phone" placeholder="0612345678" type="tel">
+            <mat-error *ngIf="verificationForm.get('phone')?.invalid && verificationForm.get('phone')?.touched">
+              Veuillez saisir un numéro de téléphone valide
+            </mat-error>
+          </mat-form-field>
+        </div>
+        
+        <div class="description-field">
+          <mat-form-field appearance="outline">
+            <mat-label>Description du cabinet (optionnel)</mat-label>
+            <textarea matInput formControlName="description" placeholder="Décrivez votre cabinet et vos services..." rows="4"></textarea>
+            <mat-hint align="end">{{ verificationForm.get('description')?.value?.length || 0 }}/500</mat-hint>
+          </mat-form-field>
+          <div class="char-count" [class.error]="verificationForm.get('description')?.value?.length > 500">
+            {{ verificationForm.get('description')?.value?.length || 0 }}/500 caractères
+          </div>
+        </div>
+        
+        <h3 class="section-title">Documents requis</h3>
+        
+        <div class="documents-section">
+          <div class="document-upload">
+            <h3>Photo du cabinet *</h3>
+            <div class="upload-container">
+              <div class="upload-box" (click)="cabinetPhotoInput.click()">
+                <mat-icon>add_photo_alternate</mat-icon>
+                <p>Cliquez pour télécharger la photo du cabinet</p>
+                <input #cabinetPhotoInput type="file" (change)="onCabinetPhotoSelected($event)" accept="image/*" hidden>
+              </div>
+              <div class="preview-container">
+                <img *ngIf="cabinetPhotoPreview" [src]="cabinetPhotoPreview" alt="Aperçu de la photo du cabinet">
+                <p *ngIf="!cabinetPhotoPreview" class="no-preview">Aucun aperçu disponible</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="document-upload">
+            <h3>Diplôme de médecine *</h3>
+            <div class="upload-container">
+              <div class="upload-box" (click)="diplomaInput.click()">
+                <mat-icon>description</mat-icon>
+                <p>Cliquez pour télécharger votre diplôme</p>
+                <input #diplomaInput type="file" (change)="onDiplomaSelected($event)" accept="image/*, application/pdf" hidden>
+              </div>
+              <div class="preview-container">
+                <img *ngIf="diplomaPreview && diplomaFile && !isPdfFile(diplomaFile)" [src]="diplomaPreview" alt="Aperçu du diplôme">
+                <div *ngIf="diplomaFile && isPdfFile(diplomaFile)" class="no-preview">
+                  <mat-icon>picture_as_pdf</mat-icon>
+                  <p>{{ diplomaFile.name }}</p>
+                </div>
+                <p *ngIf="!diplomaPreview && !diplomaFile" class="no-preview">Aucun aperçu disponible</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="submit-container">
+          <button type="submit" mat-raised-button color="primary" 
+                  [disabled]="submitting">
+            <mat-spinner *ngIf="submitting" diameter="20" class="submit-spinner"></mat-spinner>
+            <span *ngIf="!submitting">Soumettre la demande de vérification</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </ng-container>
+
+  <div class="file-preview-container" *ngIf="selectedFile">
+    <h3>Aperçu du document</h3>
+    <div class="file-preview">
+      <img *ngIf="isImageFile(selectedFile)" [src]="filePreviewUrl" alt="Aperçu du document" class="preview-image">
+      <iframe *ngIf="isPdfFile(selectedFile)" [src]="filePreviewUrl" frameborder="0" class="preview-pdf"></iframe>
+      <div *ngIf="!isImageFile(selectedFile) && !isPdfFile(selectedFile)" class="unsupported-format">
+        Format non pris en charge pour l'aperçu
+      </div>
+    </div>
+  </div>
+</div> 

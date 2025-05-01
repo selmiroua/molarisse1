@@ -1,0 +1,63 @@
+/* You can add global styles to this file, and also import other style files */
+@import "bootstrap/dist/css/bootstrap.min.css";
+@import "@fortawesome/fontawesome-free/css/all.min.css";
+
+@import '@angular/material/prebuilt-themes/indigo-pink.css';
+
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #0093c4;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #007aa3;
+}
+
+/* Material Design Overrides */
+.mat-mdc-form-field {
+  .mat-mdc-form-field-flex {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+  }
+}
+
+.mdc-text-field--outlined {
+  --mdc-outlined-text-field-container-shape: 12px;
+}
+
+.mat-mdc-raised-button {
+  --mdc-protected-button-container-shape: 25px;
+}
+
+// Custom style for the secretary profile dialog
+.mat-mdc-dialog-container.secretary-profile-dialog {
+  .mdc-dialog__surface {
+    border-radius: 12px;
+    overflow: hidden;
+    padding: 0;
+  }
+  
+  .mdc-dialog__container {
+    padding: 0;
+  }
+}
+
+// Add custom styles for secretary dialog
+.secretary-detail-dialog .mat-mdc-dialog-container {
+  padding: 0 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
